@@ -1,0 +1,228 @@
+# claude-hooks.config.yaml
+# Complete configuration example for Claude Code Format & Lint Validator
+
+# ============================================================================
+# GLOBAL SETTINGS
+# ============================================================================
+
+# Master switch - set to false to disable all hooks
+enabled: true
+
+# Automatically apply fixes when issues are found
+autoFix: true
+
+# Don't block Claude's operations on errors (recommended: false)
+blockOnErrors: false
+
+# ============================================================================
+# VALIDATORS
+# ============================================================================
+
+validators:
+  # --------------------------------------------------------------------------
+  # Biome - All-in-one formatter and linter
+  # --------------------------------------------------------------------------
+  biome:
+    enabled: true
+    configPath: ./biome.json
+    autoFix: true
+    
+    # Version detection (auto | 1.x | 2.x)
+    version: auto
+    
+    # Always use JSON output for AI parsing
+    outputFormat: json
+    
+    # Which rules to enable
+    rules:
+      format: true        # Code formatting
+      lint: true         # Linting rules
+      organize: true     # Import organization
+      complexity: true   # Complexity analysis
+    
+    # Don't apply potentially breaking fixes
+    fixUnsafe: false
+    
+    # Settings for Biome 1.x
+    v1Settings:
+      useLegacyFlags: true
+      reporter: json
+    
+    # Settings for Biome 2.x
+    v2Settings:
+      useWorkspace: true
+      reporter: json
+      noColors: true
+
+  # --------------------------------------------------------------------------
+  # TypeScript - Type checking
+  # --------------------------------------------------------------------------
+  typescript:
+    enabled: true
+    configPath: ./tsconfig.json
+    
+    # Use strict type checking
+    strict: true
+    
+    # Don't type-check JavaScript files
+    checkJs: false
+    
+    # Use incremental compilation for performance
+    incremental: true
+    
+    # Don't emit files if there are type errors
+    noEmitOnError: true
+    
+    # Additional diagnostic options
+    diagnosticOptions:
+      skipLibCheck: true
+      skipDefaultLibCheck: true
+      suppressExcessPropertyErrors: false
+
+# ============================================================================
+# FILE PATTERNS
+# ============================================================================
+
+# Files to validate
+include:
+  - "**/*.ts"        # TypeScript files
+  - "**/*.tsx"       # TypeScript React files
+  - "**/*.js"        # JavaScript files
+  - "**/*.jsx"       # JavaScript React files
+  - "**/*.mjs"       # ES modules
+  - "**/*.cjs"       # CommonJS modules
+  - "**/*.json"      # JSON files
+  - "**/*.jsonc"     # JSON with comments
+
+# Files to ignore
+exclude:
+  - "node_modules/**"     # Dependencies
+  - "dist/**"            # Build output
+  - "build/**"           # Build output
+  - "coverage/**"        # Test coverage
+  - "*.min.js"          # Minified files
+  - "*.bundle.js"       # Bundled files
+  - ".git/**"           # Git directory
+  - "**/*.d.ts"         # Type definition files
+  - "**/vendor/**"      # Third-party code
+  - "**/.next/**"       # Next.js build
+  - "**/.nuxt/**"       # Nuxt build
+
+# ============================================================================
+# HOOK CONFIGURATION
+# ============================================================================
+
+hooks:
+  # --------------------------------------------------------------------------
+  # Post-Write Hook - Main validation after Claude writes files
+  # --------------------------------------------------------------------------
+  postWrite:
+    enabled: true
+    timeout: 5000              # 5 seconds
+    failureStrategy: warn      # warn | block | ignore
+    autoFix: true
+    reportToUser: true
+    runValidators:
+      - biome
+      - typescript
+  
+  # --------------------------------------------------------------------------
+  # Pre-Read Hook - Optional cleaning before Claude reads files
+  # --------------------------------------------------------------------------
+  preRead:
+    enabled: false             # Disabled by default
+    timeout: 2000             # 2 seconds
+    failureStrategy: ignore
+    autoFix: false
+  
+  # --------------------------------------------------------------------------
+  # Batch Operation Hook - Handle multiple files efficiently
+  # --------------------------------------------------------------------------
+  batchOperation:
+    enabled: true
+    timeout: 10000            # 10 seconds
+    failureStrategy: warn
+    parallelProcessing: true
+    maxBatchSize: 50          # Process up to 50 files at once
+
+# ============================================================================
+# NOTIFICATIONS (AI-Optimized)
+# ============================================================================
+
+notifications:
+  # Output format for Claude
+  format: structured          # structured | plain | verbose
+  
+  # Content settings
+  showDiffs: true            # Show before/after for fixes
+  showFixSuggestions: true   # Suggest how to fix issues
+  includeContext: true       # Include surrounding code
+  maxContextLines: 3         # Lines of context around issues
+  maxDiffLines: 30          # Limit diff size for readability
+  
+  # AI optimization - Clean output for Claude
+  removeColors: true         # Strip ANSI color codes
+  removeDecorations: true    # Remove Unicode symbols
+  useRelativePaths: true    # Use relative instead of absolute paths
+  simplifyMessages: true     # Rewrite technical messages for clarity
+  
+  # Organization
+  groupByFile: true         # Group all issues by file
+  sortBy: severity          # severity | file | type
+  collapseFixed: true       # Summarize auto-fixed issues
+  highlightUnfixed: true    # Emphasize remaining issues
+
+# ============================================================================
+# PERFORMANCE
+# ============================================================================
+
+performance:
+  parallel: true            # Run validators concurrently
+  maxWorkers: 4            # Number of parallel workers
+  cache: true              # Cache validation results
+  cacheTimeout: 300000     # Cache for 5 minutes (in ms)
+  debounceDelay: 500       # Wait 500ms for rapid changes
+
+# ============================================================================
+# SEVERITY LEVELS
+# ============================================================================
+
+# How to categorize different issue types
+severity:
+  typeError: error         # TypeScript type errors
+  formatIssue: warning     # Formatting issues
+  lintIssue: warning      # Linting issues
+  importOrder: info       # Import organization
+  complexity: warning     # Complexity warnings
+
+# ============================================================================
+# FIX PRIORITIES
+# ============================================================================
+
+# Order of fix application (higher = fixed first)
+fixPriority:
+  format: 100             # Fix formatting first
+  imports: 90             # Then organize imports
+  lint: 80               # Then apply lint fixes
+  complexity: 50         # Complex fixes last
+
+# ============================================================================
+# ADVANCED OPTIONS
+# ============================================================================
+
+# Debug settings (normally false)
+debug:
+  enabled: false
+  logLevel: info          # error | warn | info | debug
+  logFile: ./claude-hooks.log
+  
+# Experimental features (use with caution)
+experimental:
+  # Use AI to suggest fixes for unfixable issues
+  aiSuggestions: false
+  
+  # Attempt to fix type errors (very experimental)
+  typeErrorFixes: false
+  
+  # Learn from user corrections
+  adaptiveLearning: false
