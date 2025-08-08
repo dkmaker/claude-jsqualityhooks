@@ -12,6 +12,7 @@ import type { Config } from '../types/config.js';
 import type { FileInfo, HookResult } from '../types/hooks.js';
 import { BaseHook } from './BaseHook.js';
 import { PatternMatcher } from './PatternMatcher.js';
+import { ValidatorManager, type ValidationResponse } from '../validators/ValidatorManager.js';
 
 /**
  * Post-write hook that processes files after Claude writes them
@@ -27,12 +28,16 @@ export class PostWriteHook extends BaseHook {
   readonly name = 'postWrite';
 
   private readonly patternMatcher: PatternMatcher;
+  private readonly validatorManager: ValidatorManager;
 
   constructor(config: Config) {
     super(config);
 
     // Initialize pattern matcher with config patterns
     this.patternMatcher = new PatternMatcher(config.include, config.exclude);
+    
+    // Initialize validator manager
+    this.validatorManager = new ValidatorManager(config);
   }
 
   /**
@@ -56,8 +61,7 @@ export class PostWriteHook extends BaseHook {
     // Ensure file info is complete
     const completeFileInfo = await this.enrichFileInfo(file);
 
-    // TODO: Phase 2 - Add validator execution here
-    // This is where we'll integrate Biome and TypeScript validators
+    // Execute validators using ValidatorManager
     const validationResult = await this.executeValidators(completeFileInfo);
 
     // TODO: Phase 3 - Add auto-fix logic here
@@ -146,22 +150,55 @@ export class PostWriteHook extends BaseHook {
   }
 
   /**
-   * Execute validators (placeholder for Phase 2)
+   * Execute validators using ValidatorManager
    */
-  private async executeValidators(_file: FileInfo): Promise<{
-    validation?: unknown;
+  private async executeValidators(file: FileInfo): Promise<{
+    validation?: ValidationResponse;
     stats: { validatorsRun: number; issuesFound: number };
   }> {
-    // TODO: Phase 2 - Implement actual validator execution
-    // For now, return placeholder result
-    this.info(`Validators would run for: ${_file.path}`);
-
-    return {
-      stats: {
-        validatorsRun: 0,
-        issuesFound: 0,
-      },
-    };
+    try {
+      this.info(`Running validators for: ${file.path}`);
+      
+      const validationResponse = await this.validatorManager.validateFile(file);
+      
+      // Log validation results
+      if (validationResponse.cached) {
+        this.info(`Used cached validation results for: ${file.path}`);
+      }
+      
+      if (validationResponse.summary.totalIssues > 0) {
+        this.warn(
+          `Found ${validationResponse.summary.totalIssues} issues in ${file.path} ` +
+          `(${validationResponse.summary.errorCount} errors, ${validationResponse.summary.warningCount} warnings)`
+        );
+      }
+      
+      // Log performance if validation took longer than expected
+      if (validationResponse.performance.totalDuration > 1000) {
+        this.warn(
+          `Validation took ${validationResponse.performance.totalDuration.toFixed(1)}ms for ${file.path} ` +
+          `(efficiency: ${(validationResponse.performance.parallelEfficiency * 100).toFixed(1)}%)`
+        );
+      }
+      
+      return {
+        validation: validationResponse,
+        stats: {
+          validatorsRun: validationResponse.summary.successfulValidators,
+          issuesFound: validationResponse.summary.totalIssues,
+        },
+      };
+    } catch (error) {
+      this.warn(`Validator execution failed for ${file.path}`, error instanceof Error ? error : undefined);
+      
+      // Return safe fallback result
+      return {
+        stats: {
+          validatorsRun: 0,
+          issuesFound: 0,
+        },
+      };
+    }
   }
 
   /**
@@ -204,5 +241,12 @@ export class PostWriteHook extends BaseHook {
    */
   getPatternMatcher(): PatternMatcher {
     return this.patternMatcher;
+  }
+
+  /**
+   * Get validator manager (for testing)
+   */
+  getValidatorManager(): ValidatorManager {
+    return this.validatorManager;
   }
 }
