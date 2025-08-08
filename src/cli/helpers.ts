@@ -8,6 +8,7 @@ import { access, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
+import type { ClaudeSettings } from '../types/config.js';
 import {
   type DetectedVersions,
   detectBiomeVersion,
@@ -178,7 +179,7 @@ export async function findClaudeSettings(
  */
 export async function readClaudeSettings(
   settingsPath: string
-): Promise<{ success: boolean; settings?: any; message: string }> {
+): Promise<{ success: boolean; settings?: ClaudeSettings; message: string }> {
   try {
     const content = await readFile(settingsPath, 'utf-8');
     const settings = JSON.parse(content);
@@ -224,7 +225,7 @@ export async function backupSettings(
  */
 export async function updateClaudeSettings(
   settingsPath: string,
-  currentSettings: any,
+  currentSettings: ClaudeSettings,
   options: InstallOptions = {}
 ): Promise<{ success: boolean; message: string }> {
   try {
@@ -243,8 +244,7 @@ export async function updateClaudeSettings(
         PostToolUse: [
           // Remove any existing claude-jsqualityhooks hooks
           ...(currentSettings.hooks?.PostToolUse || []).filter(
-            (hook: any) =>
-              !hook.hooks?.some((h: any) => h.command?.includes('claude-jsqualityhooks'))
+            (hook) => !hook.hooks?.some((h) => h.command?.includes('claude-jsqualityhooks'))
           ),
           // Add new hook
           {
@@ -294,7 +294,7 @@ export async function removeHooksFromSettings(
       hooks: {
         ...settings.hooks,
         PostToolUse: (settings.hooks?.PostToolUse || []).filter(
-          (hook: any) => !hook.hooks?.some((h: any) => h.command?.includes('claude-jsqualityhooks'))
+          (hook) => !hook.hooks?.some((h) => h.command?.includes('claude-jsqualityhooks'))
         ),
       },
     };

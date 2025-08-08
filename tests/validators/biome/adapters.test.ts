@@ -4,8 +4,12 @@
  * Validates that adapter pattern works correctly for both Biome 1.x and 2.x
  */
 
-import { describe, it, expect } from 'vitest';
-import { BiomeV1Adapter, BiomeV2Adapter, createAdapter } from '../../../src/validators/biome/adapters/index.js';
+import { describe, expect, it } from 'vitest';
+import {
+  BiomeV1Adapter,
+  BiomeV2Adapter,
+  createAdapter,
+} from '../../../src/validators/biome/adapters/index.js';
 
 describe('Biome Adapters', () => {
   describe('BiomeV1Adapter', () => {
@@ -32,7 +36,13 @@ describe('Biome Adapters', () => {
 
     it('should build command with config path', () => {
       const command = adapter.buildCommand('test.ts', { configPath: './biome.json' });
-      expect(command).toEqual(['check', 'test.ts', '--reporter=json', '--config-path', './biome.json']);
+      expect(command).toEqual([
+        'check',
+        'test.ts',
+        '--reporter=json',
+        '--config-path',
+        './biome.json',
+      ]);
     });
 
     it('should return correct fix flag', () => {
@@ -70,12 +80,26 @@ describe('Biome Adapters', () => {
 
     it('should build command with unsafe fixes', () => {
       const command = adapter.buildCommand('test.ts', { autoFix: true, unsafeFixes: true });
-      expect(command).toEqual(['check', 'test.ts', '--write', '--unsafe', '--reporter=json', '--no-colors']);
+      expect(command).toEqual([
+        'check',
+        'test.ts',
+        '--write',
+        '--unsafe',
+        '--reporter=json',
+        '--no-colors',
+      ]);
     });
 
     it('should build command with config path', () => {
       const command = adapter.buildCommand('test.ts', { configPath: './biome.json' });
-      expect(command).toEqual(['check', 'test.ts', '--reporter=json', '--no-colors', '--config-path', './biome.json']);
+      expect(command).toEqual([
+        'check',
+        'test.ts',
+        '--reporter=json',
+        '--no-colors',
+        '--config-path',
+        './biome.json',
+      ]);
     });
 
     it('should return correct fix flag', () => {

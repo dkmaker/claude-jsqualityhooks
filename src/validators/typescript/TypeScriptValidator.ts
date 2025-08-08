@@ -7,8 +7,8 @@
 
 import type { TypeScriptConfig } from '../../types/config.js';
 import type { ValidationIssue } from '../biome/adapters/BiomeAdapter.js';
-import { loadTSConfigWithDiscovery, getDefaultCompilerOptions } from './tsconfigLoader.js';
-import { parseDiagnostics, filterDiagnosticsForFile } from './diagnosticParser.js';
+import { filterDiagnosticsForFile, parseDiagnostics } from './diagnosticParser.js';
+import { getDefaultCompilerOptions, loadTSConfigWithDiscovery } from './tsconfigLoader.js';
 
 // TypeScript is imported dynamically to handle cases where it's not available
 let ts: typeof import('typescript') | null = null;
@@ -79,11 +79,11 @@ export class TypeScriptValidator {
       const tsConfigOptions: { projectRoot: string; configPath?: string } = {
         projectRoot: this.projectRoot,
       };
-      
+
       if (this.config.configPath) {
         tsConfigOptions.configPath = this.config.configPath;
       }
-      
+
       const tsConfigResult = await loadTSConfigWithDiscovery(tsConfigOptions);
 
       let compilerOptions: import('typescript').CompilerOptions;
@@ -97,8 +97,10 @@ export class TypeScriptValidator {
         );
 
         if (parsed.errors.length > 0 && ts) {
-          console.warn('TypeScript config errors found, using defaults:', 
-            parsed.errors.map(err => ts?.flattenDiagnosticMessageText(err.messageText, '\n')));
+          console.warn(
+            'TypeScript config errors found, using defaults:',
+            parsed.errors.map((err) => ts?.flattenDiagnosticMessageText(err.messageText, '\n'))
+          );
         }
 
         compilerOptions = parsed.options;
@@ -174,7 +176,7 @@ export class TypeScriptValidator {
 
       // Create program with the file
       const program = await this.createProgram([file.path]);
-      
+
       if (!program) {
         return {
           validator: this.name,
@@ -192,9 +194,9 @@ export class TypeScriptValidator {
       });
 
       // Determine status based on issues
-      const hasErrors = issues.some(issue => issue.severity === 'error');
-      const hasWarnings = issues.some(issue => issue.severity === 'warning');
-      
+      const hasErrors = issues.some((issue) => issue.severity === 'error');
+      const hasWarnings = issues.some((issue) => issue.severity === 'warning');
+
       const status = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success';
 
       return {
@@ -204,7 +206,7 @@ export class TypeScriptValidator {
       };
     } catch (error) {
       console.warn(`TypeScript validation failed for ${file.path}: ${error}`);
-      
+
       return {
         validator: this.name,
         status: 'error',
@@ -268,7 +270,7 @@ export class TypeScriptValidator {
     if (!ts || !this.tsAvailable) {
       return null;
     }
-    
+
     return ts.version;
   }
 }

@@ -8,11 +8,13 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname } from 'node:path';
+import { AutoFixEngine } from '../fixers/index.js';
 import type { Config } from '../types/config.js';
 import type { FileInfo, HookResult } from '../types/hooks.js';
+import type { ValidationIssue } from '../validators/biome/adapters/BiomeAdapter.js';
+import { type ValidationResponse, ValidatorManager } from '../validators/ValidatorManager.js';
 import { BaseHook } from './BaseHook.js';
 import { PatternMatcher } from './PatternMatcher.js';
-import { ValidatorManager, type ValidationResponse } from '../validators/ValidatorManager.js';
 
 /**
  * Post-write hook that processes files after Claude writes them
@@ -35,7 +37,7 @@ export class PostWriteHook extends BaseHook {
 
     // Initialize pattern matcher with config patterns
     this.patternMatcher = new PatternMatcher(config.include, config.exclude);
-    
+
     // Initialize validator manager
     this.validatorManager = new ValidatorManager(config);
   }
@@ -158,29 +160,29 @@ export class PostWriteHook extends BaseHook {
   }> {
     try {
       this.info(`Running validators for: ${file.path}`);
-      
+
       const validationResponse = await this.validatorManager.validateFile(file);
-      
+
       // Log validation results
       if (validationResponse.cached) {
         this.info(`Used cached validation results for: ${file.path}`);
       }
-      
+
       if (validationResponse.summary.totalIssues > 0) {
         this.warn(
           `Found ${validationResponse.summary.totalIssues} issues in ${file.path} ` +
-          `(${validationResponse.summary.errorCount} errors, ${validationResponse.summary.warningCount} warnings)`
+            `(${validationResponse.summary.errorCount} errors, ${validationResponse.summary.warningCount} warnings)`
         );
       }
-      
+
       // Log performance if validation took longer than expected
       if (validationResponse.performance.totalDuration > 1000) {
         this.warn(
           `Validation took ${validationResponse.performance.totalDuration.toFixed(1)}ms for ${file.path} ` +
-          `(efficiency: ${(validationResponse.performance.parallelEfficiency * 100).toFixed(1)}%)`
+            `(efficiency: ${(validationResponse.performance.parallelEfficiency * 100).toFixed(1)}%)`
         );
       }
-      
+
       return {
         validation: validationResponse,
         stats: {
@@ -189,8 +191,11 @@ export class PostWriteHook extends BaseHook {
         },
       };
     } catch (error) {
-      this.warn(`Validator execution failed for ${file.path}`, error instanceof Error ? error : undefined);
-      
+      this.warn(
+        `Validator execution failed for ${file.path}`,
+        error instanceof Error ? error : undefined
+      );
+
       // Return safe fallback result
       return {
         stats: {
@@ -202,26 +207,101 @@ export class PostWriteHook extends BaseHook {
   }
 
   /**
-   * Execute auto-fix (placeholder for Phase 3)
+   * Execute auto-fix using AutoFixEngine
    */
   private async executeAutoFix(
     file: FileInfo,
-    _validationResult: unknown
+    validationResult: {
+      validation?: ValidationResponse;
+      stats: { validatorsRun: number; issuesFound: number };
+    }
   ): Promise<{
     modified: boolean;
     stats: { fixesApplied: number; fixesFailed: number };
   }> {
-    // TODO: Phase 3 - Implement auto-fix logic
-    // For now, return placeholder result
-    this.info(`Auto-fix would run for: ${file.path}`);
+    try {
+      // Extract all validation issues from the validation response
+      const allIssues = this.extractValidationIssues(validationResult.validation);
 
-    return {
-      modified: false,
-      stats: {
-        fixesApplied: 0,
-        fixesFailed: 0,
-      },
-    };
+      if (allIssues.length === 0) {
+        this.info(`No fixable issues found for: ${file.path}`);
+        return {
+          modified: false,
+          stats: {
+            fixesApplied: 0,
+            fixesFailed: 0,
+          },
+        };
+      }
+
+      this.info(`Auto-fix running for: ${file.path} with ${allIssues.length} issues`);
+
+      // Create AutoFixEngine instance
+      const autoFixEngine = new AutoFixEngine(this.config);
+
+      // Create AutoFixEngine FileInfo structure
+      const autoFixFileInfo = {
+        path: file.path,
+        content: file.content,
+        issues: allIssues,
+      };
+
+      // Apply fixes using AutoFixEngine
+      const fixResult = await autoFixEngine.applyFixes(autoFixFileInfo);
+
+      // Log results
+      if (fixResult.success && fixResult.modified) {
+        this.info(
+          `Auto-fix completed for ${file.path}: ` +
+            `${fixResult.statistics.fixedIssues} issues fixed, ` +
+            `${fixResult.statistics.remainingIssues} remaining`
+        );
+      } else if (!fixResult.success) {
+        this.warn(`Auto-fix failed for ${file.path}: ${fixResult.errors.join(', ')}`);
+      }
+
+      // Convert FixResult to expected format
+      return {
+        modified: fixResult.modified,
+        stats: {
+          fixesApplied: fixResult.statistics.fixedIssues,
+          fixesFailed: fixResult.statistics.totalIssues - fixResult.statistics.fixedIssues,
+        },
+      };
+    } catch (error) {
+      this.warn(
+        `Auto-fix execution failed for ${file.path}`,
+        error instanceof Error ? error : undefined
+      );
+
+      // Return safe fallback result
+      return {
+        modified: false,
+        stats: {
+          fixesApplied: 0,
+          fixesFailed: validationResult.stats.issuesFound,
+        },
+      };
+    }
+  }
+
+  /**
+   * Extract all validation issues from ValidationResponse
+   */
+  private extractValidationIssues(validationResponse?: ValidationResponse): ValidationIssue[] {
+    if (!validationResponse || !validationResponse.results) {
+      return [];
+    }
+
+    const allIssues: ValidationIssue[] = [];
+
+    for (const result of validationResponse.results) {
+      if (result.issues && Array.isArray(result.issues)) {
+        allIssues.push(...result.issues);
+      }
+    }
+
+    return allIssues;
   }
 
   /**

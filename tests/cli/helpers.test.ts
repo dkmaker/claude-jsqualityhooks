@@ -8,10 +8,11 @@
 import { access, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { stringify } from 'yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { stringify } from 'yaml';
 import {
   backupSettings,
+  type ConfigOptions,
   createConfigFile,
   findClaudeSettings,
   formatError,
@@ -19,11 +20,10 @@ import {
   formatVersionInfo,
   formatWarning,
   generateConfigContent,
+  type InstallOptions,
   readClaudeSettings,
   removeHooksFromSettings,
   updateClaudeSettings,
-  type ConfigOptions,
-  type InstallOptions,
 } from '../../src/cli/helpers.js';
 import { detectBiomeVersion, getBiomeFixFlag } from '../../src/utils/versionDetector.js';
 
@@ -182,7 +182,9 @@ describe('CLI helpers', () => {
 
       expect(result.success).toBe(true);
       expect(result.configPath).toBe('/test/project/claude-jsqualityhooks.config.yaml');
-      expect(result.message).toBe('✓ Configuration file created: /test/project/claude-jsqualityhooks.config.yaml');
+      expect(result.message).toBe(
+        '✓ Configuration file created: /test/project/claude-jsqualityhooks.config.yaml'
+      );
       expect(mockWriteFile).toHaveBeenCalledWith(
         '/test/project/claude-jsqualityhooks.config.yaml',
         'mocked yaml content',
@@ -361,10 +363,8 @@ describe('CLI helpers', () => {
     it('should add hooks to existing settings', async () => {
       const currentSettings = {
         hooks: {
-          PostToolUse: [
-            { matcher: 'existing', hooks: [{ type: 'existing' }] }
-          ]
-        }
+          PostToolUse: [{ matcher: 'existing', hooks: [{ type: 'existing' }] }],
+        },
       };
       const options: InstallOptions = {};
       mockWriteFile.mockResolvedValue(undefined);
@@ -386,25 +386,25 @@ describe('CLI helpers', () => {
           PostToolUse: [
             {
               matcher: 'Write|Edit',
-              hooks: [{ command: 'npx claude-jsqualityhooks old' }]
+              hooks: [{ command: 'npx claude-jsqualityhooks old' }],
             },
             {
               matcher: 'Other',
-              hooks: [{ command: 'other-tool' }]
-            }
-          ]
-        }
+              hooks: [{ command: 'other-tool' }],
+            },
+          ],
+        },
       };
       mockWriteFile.mockResolvedValue(undefined);
 
       const result = await updateClaudeSettings('/settings.json', currentSettings);
 
       expect(result.success).toBe(true);
-      
+
       // Verify that old claude-jsqualityhooks hook was removed
       const writtenContent = mockWriteFile.mock.calls[0][1] as string;
       const writtenSettings = JSON.parse(writtenContent);
-      
+
       // Should have the other tool hook plus new claude-jsqualityhooks hook
       expect(writtenSettings.hooks.PostToolUse).toHaveLength(2);
       expect(writtenSettings.hooks.PostToolUse[0].matcher).toBe('Other');
@@ -420,7 +420,7 @@ describe('CLI helpers', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('Hook registered for tools: Write, CustomTool');
-      
+
       const writtenContent = mockWriteFile.mock.calls[0][1] as string;
       const writtenSettings = JSON.parse(writtenContent);
       expect(writtenSettings.hooks.PostToolUse[0].matcher).toBe('Write|CustomTool');
@@ -435,7 +435,7 @@ describe('CLI helpers', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('Hook registered for tools: Edit');
-      
+
       const writtenContent = mockWriteFile.mock.calls[0][1] as string;
       const writtenSettings = JSON.parse(writtenContent);
       expect(writtenSettings.hooks.PostToolUse[0].matcher).toBe('Edit');
@@ -448,7 +448,7 @@ describe('CLI helpers', () => {
       const result = await updateClaudeSettings('/settings.json', currentSettings);
 
       expect(result.success).toBe(true);
-      
+
       const writtenContent = mockWriteFile.mock.calls[0][1] as string;
       const writtenSettings = JSON.parse(writtenContent);
       expect(writtenSettings.hooks).toBeDefined();
@@ -472,14 +472,14 @@ describe('CLI helpers', () => {
           PostToolUse: [
             {
               matcher: 'Write',
-              hooks: [{ command: 'npx claude-jsqualityhooks' }]
+              hooks: [{ command: 'npx claude-jsqualityhooks' }],
             },
             {
               matcher: 'Edit',
-              hooks: [{ command: 'other-tool' }]
-            }
-          ]
-        }
+              hooks: [{ command: 'other-tool' }],
+            },
+          ],
+        },
       };
       mockReadFile.mockResolvedValue(JSON.stringify(settings));
       mockWriteFile.mockResolvedValue(undefined);
@@ -488,7 +488,7 @@ describe('CLI helpers', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('✓ claude-jsqualityhooks hooks removed from Claude settings');
-      
+
       const writtenContent = mockWriteFile.mock.calls[0][1] as string;
       const writtenSettings = JSON.parse(writtenContent);
       expect(writtenSettings.hooks.PostToolUse).toHaveLength(1);
@@ -547,12 +547,14 @@ describe('CLI helpers', () => {
 
       const result = formatVersionInfo(versions);
 
-      expect(result).toBe([
-        'Claude JS Quality Hooks: 1.0.5',
-        'Node.js: 18.17.0',
-        'Biome: 2.1.3 (detected from package.json)',
-        'TypeScript: 5.3.0 (detected from cli)',
-      ].join('\n'));
+      expect(result).toBe(
+        [
+          'Claude JS Quality Hooks: 1.0.5',
+          'Node.js: 18.17.0',
+          'Biome: 2.1.3 (detected from package.json)',
+          'TypeScript: 5.3.0 (detected from cli)',
+        ].join('\n')
+      );
     });
 
     it('should handle missing Biome', () => {
@@ -582,7 +584,9 @@ describe('CLI helpers', () => {
       const result = formatVersionInfo(versions);
 
       expect(result).toContain('Biome: 2.1.3 (defaulted to 2.x)');
-      expect(result).toContain('TypeScript: Not found - install typescript to enable type checking');
+      expect(result).toContain(
+        'TypeScript: Not found - install typescript to enable type checking'
+      );
     });
 
     it('should show default source information', () => {
@@ -674,21 +678,18 @@ describe('CLI helpers', () => {
       const backupResult = await backupSettings(findResult.path!);
       expect(backupResult.success).toBe(true);
 
-      const updateResult = await updateClaudeSettings(
-        findResult.path!,
-        readResult.settings
-      );
+      const updateResult = await updateClaudeSettings(findResult.path!, readResult.settings);
       expect(updateResult.success).toBe(true);
     });
 
     it('should handle complete uninstallation workflow', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        hooks: {
-          PostToolUse: [
-            { matcher: 'Write', hooks: [{ command: 'npx claude-jsqualityhooks' }] }
-          ]
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          hooks: {
+            PostToolUse: [{ matcher: 'Write', hooks: [{ command: 'npx claude-jsqualityhooks' }] }],
+          },
+        })
+      );
 
       const result = await removeHooksFromSettings('/settings.json');
 

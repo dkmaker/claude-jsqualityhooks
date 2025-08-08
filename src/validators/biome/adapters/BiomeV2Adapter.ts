@@ -103,7 +103,7 @@ export class BiomeV2Adapter implements BiomeAdapter {
     const message = String(diagnosticObj.description || diagnosticObj.message || 'Unknown issue');
 
     // Determine if issue was fixed or is fixable
-    const tags = Array.isArray(diagnosticObj.tags) ? diagnosticObj.tags as string[] : [];
+    const tags = Array.isArray(diagnosticObj.tags) ? (diagnosticObj.tags as string[]) : [];
     const fixed = tags.includes('fixable') && diagnosticObj.fixed === true;
     const fixable = tags.includes('fixable');
 

@@ -108,10 +108,7 @@ describe('PatternMatcher', () => {
     });
 
     it('should prioritize exclude over include patterns', () => {
-      const conflictMatcher = new PatternMatcher(
-        ['**/*.js'],
-        ['node_modules/**/*.js']
-      );
+      const conflictMatcher = new PatternMatcher(['**/*.js'], ['node_modules/**/*.js']);
 
       // File matches include but also exclude - should be excluded
       expect(conflictMatcher.shouldValidate('node_modules/package/index.js')).toBe(false);
@@ -266,7 +263,7 @@ describe('PatternMatcher', () => {
     it('should handle regex conversion errors gracefully', () => {
       // This will be tested indirectly through pattern matching errors
       const invalidPattern = new PatternMatcher(['[invalid']);
-      
+
       // Should not throw, should return true (conservative)
       expect(invalidPattern.shouldValidate('test.ts')).toBe(true);
     });
@@ -330,7 +327,7 @@ describe('PatternMatcher', () => {
     });
 
     it('should handle very long file paths', () => {
-      const longPath = 'very/'.repeat(100) + 'long/path/file.ts';
+      const longPath = `${'very/'.repeat(100)}long/path/file.ts`;
       expect(matcher.shouldValidate(longPath)).toBe(true);
     });
 
@@ -358,7 +355,7 @@ describe('PatternMatcher', () => {
 
     it('should handle pattern matching with unusual file extensions', () => {
       const extMatcher = new PatternMatcher(['**/*.{ts,tsx}']);
-      
+
       expect(extMatcher.shouldValidate('file.ts')).toBe(true);
       expect(extMatcher.shouldValidate('file.tsx')).toBe(true);
       expect(extMatcher.shouldValidate('file.mts')).toBe(false);
@@ -377,7 +374,7 @@ describe('PatternMatcher', () => {
 
     it('should cache regex patterns for performance', () => {
       const testMatcher = new PatternMatcher(['**/*.ts']);
-      
+
       // Multiple calls should not cause performance issues
       const start = performance.now();
       for (let i = 0; i < 100; i++) {

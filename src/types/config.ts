@@ -76,3 +76,29 @@ export interface ConfigLoader {
   load(): Promise<Config>;
   validate(config: unknown): config is Config;
 }
+
+/**
+ * Claude Code hook definition
+ */
+export interface ClaudeCodeHook {
+  type: string;
+  command?: string;
+}
+
+/**
+ * Claude Code hook entry
+ */
+export interface ClaudeCodeHookEntry {
+  matcher: string;
+  hooks: ClaudeCodeHook[];
+}
+
+/**
+ * Claude Code settings structure
+ */
+export interface ClaudeSettings {
+  hooks?: {
+    PostToolUse?: ClaudeCodeHookEntry[];
+  };
+  [key: string]: unknown;
+}

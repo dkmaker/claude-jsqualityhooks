@@ -2,22 +2,24 @@
  * TypeScript validator exports
  */
 
-export { TypeScriptValidator } from './TypeScriptValidator.js';
-export type { TypeScriptValidationResult, FileInfo, ValidationResult } from './TypeScriptValidator.js';
-
-// Utility exports for advanced usage
-export { 
-  loadTSConfigWithDiscovery, 
-  findTSConfigFile, 
-  loadTSConfig, 
-  getDefaultCompilerOptions 
-} from './tsconfigLoader.js';
-export type { TSConfigOptions, TSConfig, LoadedTSConfig } from './tsconfigLoader.js';
-
-export { 
-  parseDiagnostics, 
-  parseDiagnostic, 
-  filterDiagnosticsForFile, 
-  isConfigDiagnostic 
-} from './diagnosticParser.js';
 export type { DiagnosticParserOptions } from './diagnosticParser.js';
+export {
+  filterDiagnosticsForFile,
+  isConfigDiagnostic,
+  parseDiagnostic,
+  parseDiagnostics,
+} from './diagnosticParser.js';
+export type {
+  FileInfo,
+  TypeScriptValidationResult,
+  ValidationResult,
+} from './TypeScriptValidator.js';
+export { TypeScriptValidator } from './TypeScriptValidator.js';
+export type { LoadedTSConfig, TSConfig, TSConfigOptions } from './tsconfigLoader.js';
+// Utility exports for advanced usage
+export {
+  findTSConfigFile,
+  getDefaultCompilerOptions,
+  loadTSConfig,
+  loadTSConfigWithDiscovery,
+} from './tsconfigLoader.js';

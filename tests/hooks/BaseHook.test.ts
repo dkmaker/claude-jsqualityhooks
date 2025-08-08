@@ -134,7 +134,9 @@ describe('BaseHook', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('String error');
-      expect(mockConsoleWarn).toHaveBeenCalledWith('[test-hook] Hook execution failed: String error');
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        '[test-hook] Hook execution failed: String error'
+      );
     });
 
     it('should handle timeout errors', async () => {
@@ -278,9 +280,11 @@ describe('BaseHook', () => {
 
   describe('performance timing', () => {
     it('should track execution duration', async () => {
-      const mockExecuteHook = vi.fn().mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ modified: false }), 10))
-      );
+      const mockExecuteHook = vi
+        .fn()
+        .mockImplementation(
+          () => new Promise((resolve) => setTimeout(() => resolve({ modified: false }), 10))
+        );
       const hook = new TestHook(config, mockExecuteHook);
 
       const result = await hook.execute(fileInfo);
@@ -291,9 +295,9 @@ describe('BaseHook', () => {
 
     it('should include duration even on timeout', async () => {
       const shortTimeoutConfig = { ...config, timeout: 10 };
-      const mockExecuteHook = vi.fn().mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 50))
-      );
+      const mockExecuteHook = vi
+        .fn()
+        .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 50)));
       const hook = new TestHook(shortTimeoutConfig, mockExecuteHook);
 
       const result = await hook.execute(fileInfo);

@@ -16,7 +16,13 @@ export type {
 // Core hook system exports
 export { BaseHook } from './BaseHook.js';
 export { HookManager } from './HookManager.js';
-export { InputHandler } from './InputHandler.js';
+export {
+  createFileInfo,
+  getOperationSummary,
+  inputToFileInfo,
+  parseStdin,
+  parseString,
+} from './InputHandler.js';
 export {
   DEFAULT_EXCLUDE_PATTERNS,
   DEFAULT_INCLUDE_PATTERNS,
@@ -68,8 +74,8 @@ export async function processFileWrite(filePath: string, content?: string): Prom
     }
 
     // Create FileInfo from the provided parameters
-    const { InputHandler } = await import('./InputHandler.js');
-    const fileInfo = await InputHandler.createFileInfo(filePath, content);
+    const { createFileInfo } = await import('./InputHandler.js');
+    const fileInfo = await createFileInfo(filePath, content);
 
     // Execute post-write hook
     const result = await globalHookManager.executePostWrite(fileInfo);
@@ -100,20 +106,18 @@ export async function processClaudeInput(): Promise<unknown> {
     }
 
     // Parse input from stdin
-    const { InputHandler } = await import('./InputHandler.js');
-    const input = await InputHandler.parseStdin();
+    const { parseStdin, getOperationSummary, inputToFileInfo } = await import('./InputHandler.js');
+    const input = await parseStdin();
 
     if (!input) {
       console.warn('[HookSystem] No valid input received from stdin');
       return { success: false, error: 'No valid input received' };
     }
 
-    console.info(
-      `[HookSystem] Processing Claude operation: ${InputHandler.getOperationSummary(input)}`
-    );
+    console.info(`[HookSystem] Processing Claude operation: ${getOperationSummary(input)}`);
 
     // Convert input to FileInfo
-    const fileInfo = await InputHandler.inputToFileInfo(input);
+    const fileInfo = await inputToFileInfo(input);
 
     // Execute post-write hook
     const result = await globalHookManager.executePostWrite(fileInfo);

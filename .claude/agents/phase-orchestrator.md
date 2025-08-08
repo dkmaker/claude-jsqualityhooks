@@ -144,3 +144,46 @@ Use plan/review/REVIEW-CHECKLIST.md to verify:
 - Tests passing
 - Documentation updated
 - Handover created
+
+## Error Fix Logging
+
+When a command fails then succeeds with modification, append to `agent-feedback/phase-orchestrator.md`:
+
+```markdown
+---
+Date: {YYYY-MM-DD HH:MM}
+Failed: {command that failed}
+Error: {first line of error only}
+Fixed: {command that worked}
+Type: {syntax|path|flag|version|permission|other}
+---
+```
+
+## Task Completion Report
+
+When completing a task, evaluate if recurring issues could be prevented with better system knowledge. If yes, create `agent-feedback/phase-orchestrator/report-{YYYY-MM-DD}-{topic}.md`:
+
+```markdown
+# Completion Report: {Topic}
+
+**Date**: {YYYY-MM-DD HH:MM}
+**Task**: {What was being done}
+
+## Pattern Observed
+{2-3 lines describing the recurring issue pattern}
+
+## Occurrences
+- {Example 1 with context}
+- {Example 2 with context}
+- {Example 3 if applicable}
+
+## Suggested Knowledge
+```
+{Exact text to add to agent system prompt}
+```
+
+## Impact
+- Time saved: {estimate}
+- Errors prevented: {type}
+---
+```

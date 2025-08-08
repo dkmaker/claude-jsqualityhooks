@@ -7,8 +7,8 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PostWriteHook } from '../../src/hooks/PostWriteHook.js';
 import { PatternMatcher } from '../../src/hooks/PatternMatcher.js';
+import { PostWriteHook } from '../../src/hooks/PostWriteHook.js';
 import type { Config } from '../../src/types/config.js';
 import type { FileInfo } from '../../src/types/hooks.js';
 
@@ -320,13 +320,17 @@ describe('PostWriteHook', () => {
     it('should show placeholder messages for Phase 2 validators', async () => {
       await hook.execute(fileInfo);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith('[postWrite] Validators would run for: /test/file.ts');
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        '[postWrite] Validators would run for: /test/file.ts'
+      );
     });
 
     it('should show placeholder messages for Phase 3 auto-fix', async () => {
       await hook.execute(fileInfo);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith('[postWrite] Auto-fix would run for: /test/file.ts');
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        '[postWrite] Auto-fix would run for: /test/file.ts'
+      );
     });
 
     it('should return placeholder stats for validators', async () => {

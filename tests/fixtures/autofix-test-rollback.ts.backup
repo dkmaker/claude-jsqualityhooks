@@ -1,0 +1,6 @@
+// Test file for rollback scenarios
+const x=1 // Missing semicolon
+function test() {
+  const y=2
+  return y
+} // Missing export

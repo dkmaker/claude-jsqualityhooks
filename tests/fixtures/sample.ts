@@ -1,7 +1,8 @@
 // Sample TypeScript file for testing
-const x=1;let y="hello"    // Formatting issues
-function unused() { }       // Lint issue
-const z: string = 123;      // Type error
+const _x = 1;
+const _y = 'hello'; // Formatting issues
+function _unused() {} // Lint issue
+const _z: string = 123; // Type error
 
 export function testFunction(param: number): string {
   return param.toString();
