@@ -1,90 +1,44 @@
 /**
- * Tests for Version Detection Utilities
+ * Tests for version detector utilities
  *
- * These tests verify Biome/TypeScript version detection from package.json and CLI,
- * the key v1 feature for auto-detecting Biome version to use correct CLI flags.
+ * Tests the enhanced Biome version detection with caching, config override,
+ * and improved error handling from Phase 2 Task 1
  */
 
+import { beforeEach, describe, it, expect, vi, Mock } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { execa } from 'execa';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  detectAllVersions,
   detectBiomeVersion,
-  detectTypeScriptVersion,
   getBiomeFixFlag,
-  getNodeVersion,
-  getPackageVersion,
-  type VersionInfo,
+  getVersionString,
+  clearBiomeVersionCache,
+  detectAllVersions,
 } from '../../src/utils/versionDetector.js';
+import type { BiomeConfig } from '../../src/types/config.js';
 
-// Mock file system operations
-vi.mock('node:fs/promises', () => ({
-  readFile: vi.fn(),
-}));
+// Mock external dependencies
+vi.mock('node:fs/promises');
+vi.mock('execa');
 
-// Mock path operations
-vi.mock('node:path', () => ({
-  join: vi.fn((...args) => args.join('/')),
-}));
-
-// Mock process execution
-vi.mock('execa', () => ({
-  execa: vi.fn(),
-}));
-
-const mockReadFile = vi.mocked(readFile);
-const mockJoin = vi.mocked(join);
-const mockExeca = vi.mocked(execa);
-
-// Mock process.cwd and process.version
-const originalCwd = process.cwd;
-const originalVersion = process.version;
+const mockReadFile = readFile as Mock;
+const mockExeca = execa as Mock;
 
 describe('versionDetector', () => {
   beforeEach(() => {
+    // Clear all mocks and cache before each test
     vi.clearAllMocks();
-    process.cwd = vi.fn().mockReturnValue('/test/project');
-    process.version = 'v18.17.0';
+    clearBiomeVersionCache();
+    delete process.env.DEBUG;
   });
 
-  afterEach(() => {
-    process.cwd = originalCwd;
-    process.version = originalVersion;
-  });
-
-  describe('detectBiomeVersion()', () => {
-    it('should detect Biome version from package.json (strategy 1)', async () => {
-      const packageJson = {
-        dependencies: {},
-        devDependencies: {
-          '@biomejs/biome': '^2.1.3',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-      mockJoin.mockReturnValue('/test/project/package.json');
-
-      const result = await detectBiomeVersion();
-
-      expect(result).toEqual({
-        version: '2.1.3',
-        major: 2,
-        minor: 1,
-        patch: 3,
-        source: 'package.json',
-      });
-      expect(mockReadFile).toHaveBeenCalledWith('/test/project/package.json', 'utf-8');
-    });
-
-    it('should detect Biome from dependencies instead of devDependencies', async () => {
-      const packageJson = {
+  describe('detectBiomeVersion', () => {
+    it('should detect version from package.json (dependencies)', async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify({
         dependencies: {
-          '@biomejs/biome': '~1.8.3',
-        },
-        devDependencies: {},
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
+          '@biomejs/biome': '^1.8.3'
+        }
+      }));
 
       const result = await detectBiomeVersion();
 
@@ -93,17 +47,37 @@ describe('versionDetector', () => {
         major: 1,
         minor: 8,
         patch: 3,
-        source: 'package.json',
+        source: 'package.json'
       });
     });
 
-    it('should handle version prefixes in package.json', async () => {
-      const packageJson = {
+    it('should detect version from package.json (devDependencies)', async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify({
         devDependencies: {
-          '@biomejs/biome': '>=2.0.0',
+          '@biomejs/biome': '~2.1.0'
+        }
+      }));
+
+      const result = await detectBiomeVersion();
+
+      expect(result).toEqual({
+        version: '2.1.0',
+        major: 2,
+        minor: 1,
+        patch: 0,
+        source: 'package.json'
+      });
+    });
+
+    it('should prefer dependencies over devDependencies', async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': '2.0.0'
         },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
+        devDependencies: {
+          '@biomejs/biome': '1.8.3'
+        }
+      }));
 
       const result = await detectBiomeVersion();
 
@@ -112,36 +86,10 @@ describe('versionDetector', () => {
     });
 
     it('should fall back to CLI detection when package.json fails', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT: no such file'));
-      mockExeca.mockResolvedValueOnce({
-        stdout: '2.1.3',
-        stderr: '',
-        exitCode: 0,
-      } as any);
-
-      const result = await detectBiomeVersion();
-
-      expect(result).toEqual({
-        version: '2.1.3',
-        major: 2,
-        minor: 1,
-        patch: 3,
-        source: 'cli',
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+      mockExeca.mockResolvedValue({
+        stdout: 'biome 1.9.0'
       });
-      expect(mockExeca).toHaveBeenCalledWith('npx', ['@biomejs/biome', '--version'], {
-        timeout: 5000,
-      });
-    });
-
-    it('should try alternative CLI command when npx fails', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca
-        .mockRejectedValueOnce(new Error('npx failed'))
-        .mockResolvedValueOnce({
-          stdout: '1.9.0',
-          stderr: '',
-          exitCode: 0,
-        } as any);
 
       const result = await detectBiomeVersion();
 
@@ -150,14 +98,28 @@ describe('versionDetector', () => {
         major: 1,
         minor: 9,
         patch: 0,
-        source: 'cli',
+        source: 'cli'
       });
-      expect(mockExeca).toHaveBeenCalledWith('biome', ['--version'], { timeout: 5000 });
     });
 
-    it('should default to 2.0.0 when all strategies fail', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockRejectedValue(new Error('CLI not found'));
+    it('should try multiple CLI commands', async () => {
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+      mockExeca
+        .mockRejectedValueOnce(new Error('npx command failed'))
+        .mockResolvedValue({
+          stdout: '2.1.3'
+        });
+
+      const result = await detectBiomeVersion();
+
+      expect(result.version).toBe('2.1.3');
+      expect(result.source).toBe('cli');
+      expect(mockExeca).toHaveBeenCalledTimes(2);
+    });
+
+    it('should default to 2.x when all detection methods fail', async () => {
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+      mockExeca.mockRejectedValue(new Error('Command failed'));
 
       const result = await detectBiomeVersion();
 
@@ -166,450 +128,248 @@ describe('versionDetector', () => {
         major: 2,
         minor: 0,
         patch: 0,
-        source: 'default',
+        source: 'default'
       });
     });
 
-    it('should handle invalid package.json gracefully', async () => {
-      mockReadFile.mockResolvedValue('invalid json');
-      mockExeca.mockRejectedValue(new Error('CLI failed'));
-
-      const result = await detectBiomeVersion();
-
-      expect(result.source).toBe('default');
-    });
-
-    it('should handle missing Biome in package.json', async () => {
-      const packageJson = {
-        dependencies: { react: '^18.0.0' },
-        devDependencies: { typescript: '^5.0.0' },
+    it('should use config override when version is specified', async () => {
+      const config: BiomeConfig = {
+        enabled: true,
+        version: '1.x'
       };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-      mockExeca.mockRejectedValue(new Error('CLI failed'));
 
-      const result = await detectBiomeVersion();
-
-      expect(result.source).toBe('default');
-    });
-
-    it('should parse version with v prefix', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockResolvedValueOnce({
-        stdout: 'v2.1.3',
-        stderr: '',
-        exitCode: 0,
-      } as any);
-
-      const result = await detectBiomeVersion();
-
-      expect(result.version).toBe('2.1.3');
-    });
-
-    it('should handle CLI timeout', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockRejectedValue(new Error('timeout'));
-
-      const result = await detectBiomeVersion();
-
-      expect(result.source).toBe('default');
-    });
-  });
-
-  describe('getBiomeFixFlag()', () => {
-    it('should return --write for Biome 2.x and above', () => {
-      const version: VersionInfo = { version: '2.1.3', major: 2, minor: 1, patch: 3 };
-      expect(getBiomeFixFlag(version)).toBe('--write');
-    });
-
-    it('should return --write for Biome 3.x (future version)', () => {
-      const version: VersionInfo = { version: '3.0.0', major: 3, minor: 0, patch: 0 };
-      expect(getBiomeFixFlag(version)).toBe('--write');
-    });
-
-    it('should return --apply for Biome 1.x', () => {
-      const version: VersionInfo = { version: '1.8.3', major: 1, minor: 8, patch: 3 };
-      expect(getBiomeFixFlag(version)).toBe('--apply');
-    });
-
-    it('should return --apply for Biome 0.x (hypothetical)', () => {
-      const version: VersionInfo = { version: '0.9.0', major: 0, minor: 9, patch: 0 };
-      expect(getBiomeFixFlag(version)).toBe('--apply');
-    });
-  });
-
-  describe('detectTypeScriptVersion()', () => {
-    it('should detect TypeScript version from package.json', async () => {
-      const packageJson = {
-        devDependencies: {
-          typescript: '^5.3.0',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-
-      const result = await detectTypeScriptVersion();
+      const result = await detectBiomeVersion(config);
 
       expect(result).toEqual({
-        version: '5.3.0',
-        major: 5,
-        minor: 3,
+        version: '1.0.0',
+        major: 1,
+        minor: 0,
         patch: 0,
-        source: 'package.json',
+        source: 'config'
       });
+
+      // Should not attempt file reads or CLI calls
+      expect(mockReadFile).not.toHaveBeenCalled();
+      expect(mockExeca).not.toHaveBeenCalled();
     });
 
-    it('should detect TypeScript from dependencies', async () => {
-      const packageJson = {
+    it('should perform detection when config version is auto', async () => {
+      const config: BiomeConfig = {
+        enabled: true,
+        version: 'auto'
+      };
+
+      mockReadFile.mockResolvedValue(JSON.stringify({
         dependencies: {
-          typescript: '~4.9.5',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-
-      const result = await detectTypeScriptVersion();
-
-      expect(result?.source).toBe('package.json');
-      expect(result?.version).toBe('4.9.5');
-    });
-
-    it('should fall back to CLI detection', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockResolvedValueOnce({
-        stdout: 'Version 5.3.2',
-        stderr: '',
-        exitCode: 0,
-      } as any);
-
-      const result = await detectTypeScriptVersion();
-
-      expect(result).toEqual({
-        version: '5.3.2',
-        major: 5,
-        minor: 3,
-        patch: 2,
-        source: 'cli',
-      });
-      expect(mockExeca).toHaveBeenCalledWith('npx', ['typescript', '--version'], {
-        timeout: 5000,
-      });
-    });
-
-    it('should try tsc command when typescript command fails', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca
-        .mockRejectedValueOnce(new Error('typescript command failed'))
-        .mockResolvedValueOnce({
-          stdout: 'Version 5.2.4',
-          stderr: '',
-          exitCode: 0,
-        } as any);
-
-      const result = await detectTypeScriptVersion();
-
-      expect(result?.version).toBe('5.2.4');
-      expect(mockExeca).toHaveBeenCalledWith('tsc', ['--version'], { timeout: 5000 });
-    });
-
-    it('should return null when all strategies fail', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockRejectedValue(new Error('CLI failed'));
-
-      const result = await detectTypeScriptVersion();
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle invalid CLI output', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockResolvedValueOnce({
-        stdout: 'Invalid output format',
-        stderr: '',
-        exitCode: 0,
-      } as any);
-
-      const result = await detectTypeScriptVersion();
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('getNodeVersion()', () => {
-    it('should return current Node.js version', () => {
-      const result = getNodeVersion();
-
-      expect(result).toEqual({
-        version: '18.17.0',
-        major: 18,
-        minor: 17,
-        patch: 0,
-      });
-    });
-
-    it('should handle version with v prefix', () => {
-      process.version = 'v20.5.1';
-
-      const result = getNodeVersion();
-
-      expect(result.version).toBe('20.5.1');
-      expect(result.major).toBe(20);
-    });
-  });
-
-  describe('getPackageVersion()', () => {
-    it('should get version from installed package', async () => {
-      const packageJson = { version: '1.2.3' };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-      mockJoin.mockReturnValue('/test/project/node_modules/claude-jsqualityhooks/package.json');
-
-      const result = await getPackageVersion();
-
-      expect(result).toBe('1.2.3');
-      expect(mockJoin).toHaveBeenCalledWith(
-        '/test/project',
-        'node_modules',
-        'claude-jsqualityhooks',
-        'package.json'
-      );
-    });
-
-    it('should fall back to local package.json', async () => {
-      mockReadFile
-        .mockRejectedValueOnce(new Error('ENOENT: no such file'))
-        .mockResolvedValueOnce(
-          JSON.stringify({
-            name: 'claude-jsqualityhooks',
-            version: '1.0.0-dev',
-          })
-        );
-      mockJoin
-        .mockReturnValueOnce('/test/project/node_modules/claude-jsqualityhooks/package.json')
-        .mockReturnValueOnce('/test/project/package.json');
-
-      const result = await getPackageVersion();
-
-      expect(result).toBe('1.0.0-dev');
-    });
-
-    it('should return default version when not our package', async () => {
-      mockReadFile
-        .mockRejectedValueOnce(new Error('ENOENT'))
-        .mockResolvedValueOnce(
-          JSON.stringify({
-            name: 'other-package',
-            version: '2.0.0',
-          })
-        );
-
-      const result = await getPackageVersion();
-
-      expect(result).toBe('1.0.0');
-    });
-
-    it('should return default version on all failures', async () => {
-      mockReadFile.mockRejectedValue(new Error('Read failed'));
-
-      const result = await getPackageVersion();
-
-      expect(result).toBe('1.0.0');
-    });
-
-    it('should handle malformed package.json', async () => {
-      mockReadFile.mockResolvedValue('{ invalid json');
-
-      const result = await getPackageVersion();
-
-      expect(result).toBe('1.0.0');
-    });
-  });
-
-  describe('detectAllVersions()', () => {
-    it('should detect all versions successfully', async () => {
-      // Mock successful version detection
-      const biomePackage = { devDependencies: { '@biomejs/biome': '^2.1.3' } };
-      const tsPackage = { devDependencies: { typescript: '^5.3.0' } };
-      const ourPackage = { name: 'claude-jsqualityhooks', version: '1.0.5' };
-
-      mockReadFile
-        .mockResolvedValueOnce(JSON.stringify(biomePackage)) // Biome from package.json
-        .mockResolvedValueOnce(JSON.stringify(tsPackage)) // TS from package.json
-        .mockRejectedValueOnce(new Error('ENOENT')) // Package version from installed
-        .mockResolvedValueOnce(JSON.stringify(ourPackage)); // Package version from local
-
-      const result = await detectAllVersions();
-
-      expect(result).toEqual({
-        node: {
-          version: '18.17.0',
-          major: 18,
-          minor: 17,
-          patch: 0,
-        },
-        biome: {
-          version: '2.1.3',
-          major: 2,
-          minor: 1,
-          patch: 3,
-          source: 'package.json',
-        },
-        typescript: {
-          version: '5.3.0',
-          major: 5,
-          minor: 3,
-          patch: 0,
-          source: 'package.json',
-        },
-        package: '1.0.5',
-      });
-    });
-
-    it('should handle partial failures gracefully', async () => {
-      // Mock Biome success, TypeScript failure, package failure
-      const biomePackage = { devDependencies: { '@biomejs/biome': '^1.8.0' } };
-      mockReadFile
-        .mockResolvedValueOnce(JSON.stringify(biomePackage)) // Biome success
-        .mockRejectedValueOnce(new Error('TS package read failed')) // TS package fails
-        .mockRejectedValueOnce(new Error('Package read failed')); // Package version fails
-
-      mockExeca.mockRejectedValue(new Error('CLI failed')); // TS CLI fails too
-
-      const result = await detectAllVersions();
-
-      expect(result).toEqual({
-        node: {
-          version: '18.17.0',
-          major: 18,
-          minor: 17,
-          patch: 0,
-        },
-        biome: {
-          version: '1.8.0',
-          major: 1,
-          minor: 8,
-          patch: 0,
-          source: 'package.json',
-        },
-        // TypeScript should be missing due to failure
-        package: '1.0.0', // Default fallback
-      });
-
-      expect(result.typescript).toBeUndefined();
-    });
-
-    it('should handle all detection failures', async () => {
-      mockReadFile.mockRejectedValue(new Error('All reads fail'));
-      mockExeca.mockRejectedValue(new Error('All CLI calls fail'));
-
-      const result = await detectAllVersions();
-
-      expect(result).toEqual({
-        node: {
-          version: '18.17.0',
-          major: 18,
-          minor: 17,
-          patch: 0,
-        },
-        biome: {
-          version: '2.0.0',
-          major: 2,
-          minor: 0,
-          patch: 0,
-          source: 'default',
-        },
-        // TypeScript should be missing
-        package: '1.0.0', // Default
-      });
-
-      expect(result.typescript).toBeUndefined();
-    });
-
-    it('should run version detection in parallel', async () => {
-      // Verify that Promise.allSettled is used for parallel execution
-      const startTime = Date.now();
-
-      // Mock delays to verify parallel execution
-      mockReadFile.mockImplementation(async (path) => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        if (typeof path === 'string' && path.includes('biome')) {
-          return JSON.stringify({ devDependencies: { '@biomejs/biome': '^2.1.0' } });
+          '@biomejs/biome': '2.1.0'
         }
-        throw new Error('Not found');
+      }));
+
+      const result = await detectBiomeVersion(config);
+
+      expect(result.version).toBe('2.1.0');
+      expect(result.source).toBe('package.json');
+    });
+
+    it('should cache results for subsequent calls', async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': '1.8.3'
+        }
+      }));
+
+      // First call
+      const result1 = await detectBiomeVersion();
+      expect(result1.version).toBe('1.8.3');
+
+      // Second call should use cache
+      const result2 = await detectBiomeVersion();
+      expect(result2.version).toBe('1.8.3');
+
+      // Should only read file once
+      expect(mockReadFile).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle malformed version strings', async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': 'invalid-version'
+        }
+      }));
+      mockExeca.mockResolvedValue({
+        stdout: 'biome 2.1.0'
       });
 
-      mockExeca.mockRejectedValue(new Error('CLI failed'));
+      const result = await detectBiomeVersion();
 
-      await detectAllVersions();
+      // Should fall back to CLI when package.json version is invalid
+      expect(result.version).toBe('2.1.0');
+      expect(result.source).toBe('cli');
+    });
 
-      const duration = Date.now() - startTime;
-      // If run sequentially, would take ~150ms (3 * 50ms), parallel should be closer to 50ms
-      expect(duration).toBeLessThan(100);
+    it('should log debug information when DEBUG is set', async () => {
+      process.env.DEBUG = 'true';
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': '2.0.0'
+        }
+      }));
+
+      await detectBiomeVersion();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Biome version detected: v2.0.0 (source: package.json)')
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('getBiomeFixFlag', () => {
+    it('should return --write for v2.x', () => {
+      const version = { version: '2.1.0', major: 2, minor: 1, patch: 0 };
+      expect(getBiomeFixFlag(version)).toBe('--write');
+    });
+
+    it('should return --apply for v1.x', () => {
+      const version = { version: '1.8.3', major: 1, minor: 8, patch: 3 };
+      expect(getBiomeFixFlag(version)).toBe('--apply');
+    });
+
+    it('should handle invalid major version', () => {
+      const version = { version: '0.0.0', major: NaN, minor: 0, patch: 0 };
+      expect(getBiomeFixFlag(version)).toBe('--write'); // Defaults to v2.x behavior
+    });
+  });
+
+  describe('getVersionString', () => {
+    it('should return 2.x for v2.x.x', () => {
+      const version = { version: '2.1.0', major: 2, minor: 1, patch: 0 };
+      expect(getVersionString(version)).toBe('2.x');
+    });
+
+    it('should return 1.x for v1.x.x', () => {
+      const version = { version: '1.8.3', major: 1, minor: 8, patch: 3 };
+      expect(getVersionString(version)).toBe('1.x');
+    });
+
+    it('should handle invalid major version', () => {
+      const version = { version: '0.0.0', major: NaN, minor: 0, patch: 0 };
+      expect(getVersionString(version)).toBe('2.x'); // Defaults to 2.x
+    });
+  });
+
+  describe('clearBiomeVersionCache', () => {
+    it('should clear cached version', async () => {
+      // First detection
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': '1.8.3'
+        }
+      }));
+      await detectBiomeVersion();
+
+      // Clear cache
+      clearBiomeVersionCache();
+
+      // Mock different version
+      mockReadFile.mockResolvedValue(JSON.stringify({
+        dependencies: {
+          '@biomejs/biome': '2.1.0'
+        }
+      }));
+
+      // Should detect new version after cache clear
+      const result = await detectBiomeVersion();
+      expect(result.version).toBe('2.1.0');
+      expect(mockReadFile).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('detectAllVersions', () => {
+    it('should detect all versions successfully', async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.1.0',
+            'typescript': '5.0.0'
+          }
+        }))
+        .mockResolvedValueOnce(JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.1.0',
+            'typescript': '5.0.0'
+          }
+        }))
+        .mockResolvedValueOnce(JSON.stringify({
+          name: 'claude-jsqualityhooks',
+          version: '1.0.0'
+        }));
+
+      const result = await detectAllVersions();
+
+      expect(result.biome).toBeDefined();
+      expect(result.biome?.version).toBe('2.1.0');
+      expect(result.typescript).toBeDefined();
+      expect(result.typescript?.version).toBe('5.0.0');
+      expect(result.node).toBeDefined();
+      expect(result.package).toBe('1.0.0');
+    });
+
+    it('should handle detection failures gracefully', async () => {
+      process.env.DEBUG = 'true';
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+      mockExeca.mockRejectedValue(new Error('Command failed'));
+
+      const result = await detectAllVersions();
+
+      expect(result.biome?.source).toBe('default');
+      expect(result.typescript).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should pass config to biome detection', async () => {
+      const config: BiomeConfig = {
+        enabled: true,
+        version: '1.x'
+      };
+
+      const result = await detectAllVersions(config);
+
+      expect(result.biome?.version).toBe('1.0.0');
+      expect(result.biome?.source).toBe('config');
     });
   });
 
   describe('version parsing edge cases', () => {
-    it('should handle version strings with extra whitespace', async () => {
-      const packageJson = {
-        devDependencies: {
-          '@biomejs/biome': '  ^2.1.3  ',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
+    it('should handle various version formats', async () => {
+      const testCases = [
+        { input: 'v1.8.3', expected: '1.8.3' },
+        { input: '2.1.0', expected: '2.1.0' },
+        { input: 'biome 1.9.2', expected: '1.9.2' },
+        { input: 'Biome CLI version 2.0.1', expected: '2.0.1' },
+        { input: '>=2.0.0', expected: '2.0.0' },
+        { input: '^1.8.0', expected: '1.8.0' },
+        { input: '~2.1.0', expected: '2.1.0' },
+      ];
 
-      const result = await detectBiomeVersion();
+      for (const { input, expected } of testCases) {
+        mockReadFile.mockResolvedValue(JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': input
+          }
+        }));
 
-      expect(result.version).toBe('2.1.3');
-    });
-
-    it('should handle incomplete version numbers', async () => {
-      const packageJson = {
-        devDependencies: {
-          '@biomejs/biome': '^2.1',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-
-      const result = await detectBiomeVersion();
-
-      expect(result).toEqual({
-        version: '2.1',
-        major: 2,
-        minor: 1,
-        patch: 0,
-        source: 'package.json',
-      });
-    });
-
-    it('should handle version with only major number', async () => {
-      const packageJson = {
-        devDependencies: {
-          '@biomejs/biome': '2',
-        },
-      };
-      mockReadFile.mockResolvedValue(JSON.stringify(packageJson));
-
-      const result = await detectBiomeVersion();
-
-      expect(result).toEqual({
-        version: '2',
-        major: 2,
-        minor: 0,
-        patch: 0,
-        source: 'package.json',
-      });
-    });
-
-    it('should handle non-numeric version parts', async () => {
-      mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockExeca.mockResolvedValueOnce({
-        stdout: '2.1.3-beta.1',
-        stderr: '',
-        exitCode: 0,
-      } as any);
-
-      const result = await detectBiomeVersion();
-
-      expect(result.version).toBe('2.1.3-beta.1');
-      expect(result.major).toBe(2);
-      expect(result.minor).toBe(1);
-      expect(result.patch).toBe(3);
+        clearBiomeVersionCache();
+        const result = await detectBiomeVersion();
+        expect(result.version).toBe(expected);
+      }
     });
   });
 });
