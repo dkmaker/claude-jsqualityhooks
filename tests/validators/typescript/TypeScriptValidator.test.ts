@@ -8,10 +8,10 @@
  * - Timeout protection
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TypeScriptValidator } from '../../../src/validators/typescript/TypeScriptValidator.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TypeScriptConfig } from '../../../src/types/config.js';
 import type { FileInfo } from '../../../src/validators/typescript/TypeScriptValidator.js';
+import { TypeScriptValidator } from '../../../src/validators/typescript/TypeScriptValidator.js';
 
 // Mock TypeScript module
 const mockTS = {

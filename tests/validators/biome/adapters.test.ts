@@ -4,7 +4,7 @@
  * Validates that adapter pattern works correctly for both Biome 1.x and 2.x
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   BiomeV1Adapter,
   BiomeV2Adapter,

@@ -8,10 +8,11 @@
 import { access, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { stringify } from 'yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { stringify } from 'yaml';
 import {
   backupSettings,
+  type ConfigOptions,
   createConfigFile,
   findClaudeSettings,
   formatError,
@@ -19,11 +20,10 @@ import {
   formatVersionInfo,
   formatWarning,
   generateConfigContent,
+  type InstallOptions,
   readClaudeSettings,
   removeHooksFromSettings,
   updateClaudeSettings,
-  type ConfigOptions,
-  type InstallOptions,
 } from '../../src/cli/helpers.js';
 import { detectBiomeVersion, getBiomeFixFlag } from '../../src/utils/versionDetector.js';
 

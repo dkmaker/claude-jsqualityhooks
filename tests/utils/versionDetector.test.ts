@@ -5,17 +5,17 @@
  * and improved error handling from Phase 2 Task 1
  */
 
-import { beforeEach, describe, it, expect, vi, Mock } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { execa } from 'execa';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import type { BiomeConfig } from '../../src/types/config.js';
 import {
+  clearBiomeVersionCache,
+  detectAllVersions,
   detectBiomeVersion,
   getBiomeFixFlag,
   getVersionString,
-  clearBiomeVersionCache,
-  detectAllVersions,
 } from '../../src/utils/versionDetector.js';
-import type { BiomeConfig } from '../../src/types/config.js';
 
 // Mock external dependencies
 vi.mock('node:fs/promises');

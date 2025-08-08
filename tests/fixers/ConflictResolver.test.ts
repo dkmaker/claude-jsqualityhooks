@@ -4,14 +4,14 @@
  * Tests conflict detection, priority resolution, and sequential application
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   ConflictResolver,
+  classifyFixPriority,
   FixPriority,
   type FixWithMeta,
-  classifyFixPriority,
-  getFixLineRange,
   generateFixGroup,
+  getFixLineRange,
 } from '../../src/fixers/ConflictResolver.js';
 import type { ValidationIssue } from '../../src/validators/biome/adapters/BiomeAdapter.js';
 
@@ -239,7 +239,7 @@ describe('utility functions', () => {
 function createMockIssue(
   rule: string,
   line: number,
-  endLine?: number,
+  _endLine?: number,
   message?: string
 ): ValidationIssue {
   return {

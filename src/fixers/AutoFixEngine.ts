@@ -8,9 +8,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { execa } from 'execa';
 import type { Config } from '../types/config.js';
-import type { ValidationIssue } from '../validators/biome/adapters/BiomeAdapter.js';
-import { createAdapterFromDetection } from '../validators/biome/adapters/BiomeAdapterFactory.js';
 import { detectBiomeVersion } from '../utils/versionDetector.js';
+import type { BiomeAdapter, ValidationIssue } from '../validators/biome/adapters/BiomeAdapter.js';
+import { createAdapterFromDetection } from '../validators/biome/adapters/BiomeAdapterFactory.js';
 
 /**
  * Fix statistics tracking
@@ -104,7 +104,7 @@ export class AutoFixEngine {
 
     let currentContent = fileInfo.content;
     let fixAttempts = 0;
-    const maxAttempts = this.config.autoFix.maxAttempts || 3;
+    const _maxAttempts = this.config.autoFix.maxAttempts || 3;
 
     try {
       // Create backup of original content
@@ -282,8 +282,8 @@ export class AutoFixEngine {
    */
   private async executeBiomeFix(
     filePath: string,
-    adapter: any,
-    fixType: 'format' | 'imports' | 'lint'
+    adapter: BiomeAdapter,
+    _fixType: 'format' | 'imports' | 'lint'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const fixFlag = adapter.getFixFlag(false); // Only safe fixes
@@ -300,7 +300,16 @@ export class AutoFixEngine {
         command.push('--no-colors');
       }
 
-      const result = await execa(command[0]!, command.slice(1), {
+      if (command.length === 0) {
+        return { success: false, error: 'Empty command array' };
+      }
+
+      const firstCommand = command[0];
+      if (!firstCommand) {
+        return { success: false, error: 'First command is empty' };
+      }
+
+      const result = await execa(firstCommand, command.slice(1), {
         timeout: this.config.timeout || 5000,
         cwd: process.cwd(),
       });

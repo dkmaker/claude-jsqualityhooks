@@ -4,27 +4,25 @@
  * Phase 3: Auto-Fix implementation
  */
 
+export type { FileInfo, FixResult, FixStatistics } from './AutoFixEngine.js';
 export { AutoFixEngine } from './AutoFixEngine.js';
-export type { FixResult, FixStatistics, FileInfo } from './AutoFixEngine.js';
-
-export { ConflictResolver } from './ConflictResolver.js';
 export type {
+  ConflictResolutionResult,
+  FixConflict,
   FixPriority,
   FixWithMeta,
-  FixConflict,
-  ConflictResolutionResult,
   RollbackInfo,
 } from './ConflictResolver.js';
 export {
+  ConflictResolver,
   classifyFixPriority,
-  getFixLineRange,
   generateFixGroup,
+  getFixLineRange,
 } from './ConflictResolver.js';
-
-export { FixVerifier } from './FixVerifier.js';
 export type {
-  IssueComparison,
   FileIntegrityResult,
+  IssueComparison,
   VerificationMetrics,
   VerificationResult,
 } from './FixVerifier.js';
+export { FixVerifier } from './FixVerifier.js';

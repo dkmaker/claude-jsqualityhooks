@@ -6,14 +6,14 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Config, BiomeConfig, TypeScriptConfig } from '../types/config.js';
+import type { BiomeConfig, Config, TypeScriptConfig } from '../types/config.js';
 import type { FileInfo } from '../types/hooks.js';
-import { BiomeValidator, type BiomeValidationResult } from './biome/BiomeValidator.js';
-import {
-  TypeScriptValidator,
-  type ValidationResult as TSValidationResult,
-} from './typescript/index.js';
 import type { ValidationIssue } from './biome/adapters/BiomeAdapter.js';
+import { type BiomeValidationResult, BiomeValidator } from './biome/BiomeValidator.js';
+import {
+  type ValidationResult as TSValidationResult,
+  TypeScriptValidator,
+} from './typescript/index.js';
 
 /**
  * Unified validation result interface

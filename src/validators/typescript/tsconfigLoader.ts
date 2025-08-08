@@ -5,9 +5,9 @@
  * Supports custom paths and fallback to default locations.
  */
 
-import { readFile } from 'node:fs/promises';
-import { resolve, dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 
 export interface TSConfigOptions {
   configPath?: string;

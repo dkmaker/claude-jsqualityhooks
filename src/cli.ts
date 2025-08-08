@@ -167,7 +167,12 @@ async function main(): Promise<void> {
           }
 
           console.log(settingsResult.message);
-          const settingsPath = settingsResult.path!;
+          if (!settingsResult.path) {
+            console.error(formatError('Settings path not found'));
+            process.exit(1);
+            return;
+          }
+          const settingsPath = settingsResult.path;
 
           // Read current settings
           const readResult = await readClaudeSettings(settingsPath);
@@ -194,6 +199,11 @@ async function main(): Promise<void> {
           }
 
           // Update settings with hooks
+          if (!readResult.settings) {
+            console.error(formatError('Could not read current settings'));
+            process.exit(1);
+            return;
+          }
           const updateResult = await updateClaudeSettings(
             settingsPath,
             readResult.settings,
@@ -234,7 +244,12 @@ async function main(): Promise<void> {
           }
 
           console.log(settingsResult.message);
-          const settingsPath = settingsResult.path!;
+          if (!settingsResult.path) {
+            console.error(formatError('Settings path not found'));
+            process.exit(1);
+            return;
+          }
+          const settingsPath = settingsResult.path;
 
           // Remove hooks
           const removeResult = await removeHooksFromSettings(settingsPath);

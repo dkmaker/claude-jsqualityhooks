@@ -7,8 +7,8 @@
 
 import type { TypeScriptConfig } from '../../types/config.js';
 import type { ValidationIssue } from '../biome/adapters/BiomeAdapter.js';
-import { loadTSConfigWithDiscovery, getDefaultCompilerOptions } from './tsconfigLoader.js';
-import { parseDiagnostics, filterDiagnosticsForFile } from './diagnosticParser.js';
+import { filterDiagnosticsForFile, parseDiagnostics } from './diagnosticParser.js';
+import { getDefaultCompilerOptions, loadTSConfigWithDiscovery } from './tsconfigLoader.js';
 
 // TypeScript is imported dynamically to handle cases where it's not available
 let ts: typeof import('typescript') | null = null;

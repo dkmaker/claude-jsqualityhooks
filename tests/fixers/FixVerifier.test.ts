@@ -1,15 +1,15 @@
 /**
  * FixVerifier tests
- * 
- * Tests for the fix verification system that ensures fixes were applied 
+ *
+ * Tests for the fix verification system that ensures fixes were applied
  * successfully and no new issues were introduced.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FixVerifier } from '../../src/fixers/FixVerifier.js';
-import { ValidatorManager } from '../../src/validators/ValidatorManager.js';
 import type { Config } from '../../src/types/config.js';
 import type { ValidationResponse } from '../../src/validators/ValidatorManager.js';
+import { ValidatorManager } from '../../src/validators/ValidatorManager.js';
 
 // Mock fs/promises
 vi.mock('node:fs/promises', () => ({
@@ -43,7 +43,7 @@ describe('FixVerifier', () => {
     mockValidatorManager = {
       validateFile: vi.fn(),
     };
-    
+
     // Mock the ValidatorManager constructor
     (ValidatorManager as any).mockImplementation(() => mockValidatorManager);
 
@@ -55,15 +55,33 @@ describe('FixVerifier', () => {
       // Setup - original validation with issues
       const originalValidation: ValidationResponse = {
         success: false,
-        results: [{
-          validator: 'biome',
-          status: 'error',
-          issues: [
-            { file: 'test.ts', line: 1, column: 1, severity: 'error', message: 'Missing semicolon', fixed: false, fixable: true },
-            { file: 'test.ts', line: 2, column: 1, severity: 'warning', message: 'Unused import', fixed: false, fixable: true },
-          ],
-          duration: 100,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'error',
+            issues: [
+              {
+                file: 'test.ts',
+                line: 1,
+                column: 1,
+                severity: 'error',
+                message: 'Missing semicolon',
+                fixed: false,
+                fixable: true,
+              },
+              {
+                file: 'test.ts',
+                line: 2,
+                column: 1,
+                severity: 'warning',
+                message: 'Unused import',
+                fixed: false,
+                fixable: true,
+              },
+            ],
+            duration: 100,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 0,
@@ -80,12 +98,14 @@ describe('FixVerifier', () => {
       // Setup - new validation with resolved issues
       const newValidation: ValidationResponse = {
         success: true,
-        results: [{
-          validator: 'biome',
-          status: 'success',
-          issues: [], // All issues resolved
-          duration: 80,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'success',
+            issues: [], // All issues resolved
+            duration: 80,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 1,
@@ -129,14 +149,24 @@ describe('FixVerifier', () => {
     it('should detect when fixes introduce new issues', async () => {
       const originalValidation: ValidationResponse = {
         success: false,
-        results: [{
-          validator: 'biome',
-          status: 'error',
-          issues: [
-            { file: 'test.ts', line: 1, column: 1, severity: 'error', message: 'Missing semicolon', fixed: false, fixable: true },
-          ],
-          duration: 100,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'error',
+            issues: [
+              {
+                file: 'test.ts',
+                line: 1,
+                column: 1,
+                severity: 'error',
+                message: 'Missing semicolon',
+                fixed: false,
+                fixable: true,
+              },
+            ],
+            duration: 100,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 0,
@@ -152,14 +182,24 @@ describe('FixVerifier', () => {
 
       const newValidation: ValidationResponse = {
         success: false,
-        results: [{
-          validator: 'biome',
-          status: 'error',
-          issues: [
-            { file: 'test.ts', line: 2, column: 1, severity: 'error', message: 'Syntax error introduced by fix', fixed: false, fixable: false },
-          ],
-          duration: 80,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'error',
+            issues: [
+              {
+                file: 'test.ts',
+                line: 2,
+                column: 1,
+                severity: 'error',
+                message: 'Syntax error introduced by fix',
+                fixed: false,
+                fixable: false,
+              },
+            ],
+            duration: 80,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 0,
@@ -187,7 +227,7 @@ describe('FixVerifier', () => {
       expect(result.success).toBe(false);
       expect(result.effectiveness).toBe('partial'); // High success rate but with new issues = partial
       expect(result.issues.newCount).toBe(1);
-      expect(result.warnings.some(w => w.includes('new issues introduced'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('new issues introduced'))).toBe(true);
     });
 
     it('should handle file integrity issues', async () => {
@@ -222,7 +262,7 @@ describe('FixVerifier', () => {
       expect(result.effectiveness).toBe('failed');
       expect(result.integrity.exists).toBe(false);
       expect(result.integrity.isEmpty).toBe(true);
-      expect(result.warnings.some(w => w.includes('empty after fixes'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('empty after fixes'))).toBe(true);
     });
 
     it('should handle verification errors gracefully', async () => {
@@ -254,21 +294,39 @@ describe('FixVerifier', () => {
 
       expect(result.success).toBe(false);
       expect(result.effectiveness).toBe('failed');
-      expect(result.warnings.some(w => w.includes('Verification failed'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('Verification failed'))).toBe(true);
     });
 
     it('should generate comprehensive verification reports', async () => {
       const originalValidation: ValidationResponse = {
         success: false,
-        results: [{
-          validator: 'biome',
-          status: 'error',
-          issues: [
-            { file: 'test.ts', line: 1, column: 1, severity: 'error', message: 'Error 1', fixed: false, fixable: true },
-            { file: 'test.ts', line: 2, column: 1, severity: 'warning', message: 'Warning 1', fixed: false, fixable: true },
-          ],
-          duration: 100,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'error',
+            issues: [
+              {
+                file: 'test.ts',
+                line: 1,
+                column: 1,
+                severity: 'error',
+                message: 'Error 1',
+                fixed: false,
+                fixable: true,
+              },
+              {
+                file: 'test.ts',
+                line: 2,
+                column: 1,
+                severity: 'warning',
+                message: 'Warning 1',
+                fixed: false,
+                fixable: true,
+              },
+            ],
+            duration: 100,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 0,
@@ -284,14 +342,24 @@ describe('FixVerifier', () => {
 
       const newValidation: ValidationResponse = {
         success: false,
-        results: [{
-          validator: 'biome',
-          status: 'warning',
-          issues: [
-            { file: 'test.ts', line: 2, column: 1, severity: 'warning', message: 'Warning 1', fixed: false, fixable: true },
-          ],
-          duration: 80,
-        }],
+        results: [
+          {
+            validator: 'biome',
+            status: 'warning',
+            issues: [
+              {
+                file: 'test.ts',
+                line: 2,
+                column: 1,
+                severity: 'warning',
+                message: 'Warning 1',
+                fixed: false,
+                fixable: true,
+              },
+            ],
+            duration: 80,
+          },
+        ],
         summary: {
           totalValidators: 1,
           successfulValidators: 0,

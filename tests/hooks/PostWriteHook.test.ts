@@ -7,8 +7,8 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PostWriteHook } from '../../src/hooks/PostWriteHook.js';
 import { PatternMatcher } from '../../src/hooks/PatternMatcher.js';
+import { PostWriteHook } from '../../src/hooks/PostWriteHook.js';
 import type { Config } from '../../src/types/config.js';
 import type { FileInfo } from '../../src/types/hooks.js';
 

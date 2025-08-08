@@ -327,7 +327,7 @@ describe('PatternMatcher', () => {
     });
 
     it('should handle very long file paths', () => {
-      const longPath = 'very/'.repeat(100) + 'long/path/file.ts';
+      const longPath = `${'very/'.repeat(100)}long/path/file.ts`;
       expect(matcher.shouldValidate(longPath)).toBe(true);
     });
 

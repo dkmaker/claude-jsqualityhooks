@@ -4,10 +4,10 @@
  * Tests for parallel validation execution, result aggregation, and caching
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ValidatorManager } from '../../src/validators/ValidatorManager.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Config } from '../../src/types/config.js';
 import type { FileInfo } from '../../src/types/hooks.js';
+import { ValidatorManager } from '../../src/validators/ValidatorManager.js';
 
 // Mock the validators
 const mockBiomeValidate = vi.fn().mockResolvedValue({

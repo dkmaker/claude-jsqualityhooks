@@ -10,8 +10,8 @@
  * - Error handling
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AutoFixEngine, type FileInfo, type FixResult } from '../../src/fixers/index.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AutoFixEngine, type FileInfo } from '../../src/fixers/index.js';
 import type { Config } from '../../src/types/config.js';
 import type { ValidationIssue } from '../../src/validators/index.js';
 
@@ -40,8 +40,8 @@ const mockCreateAdapterFromDetection = vi.mocked(createAdapterFromDetection);
 const mockAdapter = {
   version: '2.x' as const,
   getFixFlag: vi.fn().mockReturnValue('--write'),
-  buildCommand: vi.fn(),
-  parseOutput: vi.fn(),
+  buildCommand: vi.fn().mockReturnValue(['biome', 'check', '--write']),
+  parseOutput: vi.fn().mockReturnValue([]),
 };
 
 describe('AutoFixEngine', () => {
@@ -73,8 +73,6 @@ describe('AutoFixEngine', () => {
       timeout: 5000,
     };
 
-    autoFixEngine = new AutoFixEngine(config);
-
     // Create mock file
     mockFile = {
       path: '/test/file.ts',
@@ -101,7 +99,7 @@ describe('AutoFixEngine', () => {
       ],
     };
 
-    // Setup mocks
+    // Setup mocks - Reset and configure properly
     mockDetectBiomeVersion.mockResolvedValue({
       version: '2.1.0',
       major: 2,
@@ -110,9 +108,26 @@ describe('AutoFixEngine', () => {
       source: 'package.json',
     });
 
+    // Reset the mock adapter methods before each test
+    mockAdapter.getFixFlag.mockReturnValue('--write');
+    mockAdapter.buildCommand.mockReturnValue(['biome', 'check', '--write']);
+    mockAdapter.parseOutput.mockReturnValue([]);
+
     mockCreateAdapterFromDetection.mockReturnValue(mockAdapter);
+
+    // Mock file operations - default to successful read of fixed content
     mockReadFile.mockResolvedValue("const x = 1;\nconst y = 'hello';");
-    mockExeca.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' });
+    mockWriteFile.mockResolvedValue(undefined);
+
+    // Mock execa to return successful biome execution
+    mockExeca.mockResolvedValue({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    } as any);
+
+    // Create engine instance after mocks are set up
+    autoFixEngine = new AutoFixEngine(config);
   });
 
   afterEach(() => {
@@ -268,7 +283,7 @@ describe('AutoFixEngine', () => {
       mockWriteFile.mockRejectedValue(new Error('Backup failed'));
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const result = await autoFixEngine.applyFixes(mockFile);
+      const _result = await autoFixEngine.applyFixes(mockFile);
 
       // Should continue despite backup failure
       expect(consoleSpy).toHaveBeenCalledWith(
