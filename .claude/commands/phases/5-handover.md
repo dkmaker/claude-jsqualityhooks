@@ -6,7 +6,34 @@ allowed-tools: Read, Write, Bash, TodoWrite
 
 # Phase Handover
 
-You are completing phase: `$ARGUMENTS` and preparing handover for the next phase.
+## ARGUMENTS Section
+
+The provided argument is: `$ARGUMENTS`
+
+### Validation and Extraction
+Validate that the argument matches one of:
+- `phase-1-infrastructure`
+- `phase-2-validators`
+- `phase-3-autofix`
+- `phase-4-ai-output`
+- `phase-5-testing`
+
+If invalid, stop and report an error.
+
+### Extract Values
+- **PHASE_FOLDER**: The full folder name (same as the argument)
+- **PHASE_NUMBER**: Just the phase number (e.g., `phase-1`)
+- **PHASE_NAME**: The descriptive part (e.g., `infrastructure`)
+- **BRANCH_NAME**: The git branch (e.g., `feature/phase-1`)
+
+### Usage Note
+Throughout this command, replace the bracketed placeholders with the extracted values:
+- `[PHASE_FOLDER]` → use the full folder name
+- `[PHASE_NUMBER]` → use just the phase number
+- `[BRANCH_NAME]` → use the branch name
+- `[PHASE_NAME]` → use the descriptive name
+
+For bash commands, use the actual extracted values, not variables.
 
 ## Handover Process
 
@@ -14,7 +41,7 @@ You are completing phase: `$ARGUMENTS` and preparing handover for the next phase
 
 Use **phase-orchestrator** agent to check:
 - All tasks in TodoWrite marked complete
-- Success criteria from @plan/$ARGUMENTS/PLAN.md met
+- Success criteria from @plan/[PHASE_FOLDER]/PLAN.md met
 - Validation passed (`/phases:3-validate` succeeded)
 - Tests documented (`/phases:4-test` completed)
 
@@ -33,13 +60,13 @@ Phase 5 → Project Complete
 
 Use **phase-orchestrator** agent to create:
 
-File: `plan/handovers/$ARGUMENTS-to-[next-phase].md`
+File: `plan/handovers/[PHASE_NUMBER]-to-[next-phase].md`
 
 ```markdown
-# Phase $ARGUMENTS to [Next Phase] Handover
+# Phase [PHASE_FOLDER] to [Next Phase] Handover
 
 ## Phase Summary
-**Phase**: $ARGUMENTS
+**Phase**: [PHASE_FOLDER]
 **Completed**: [Date]
 **Duration**: [Actual time taken]
 **Status**: COMPLETE
@@ -174,7 +201,7 @@ Use **test-engineer** agent to verify test coverage:
 Present validation results and request user approval:
 
 ```markdown
-## Phase $ARGUMENTS Validation Complete
+## Phase [PHASE_FOLDER] Validation Complete
 
 ### Quality Check Results
 [Quality guardian output showing success criteria status]
@@ -183,7 +210,7 @@ Present validation results and request user approval:
 [Test engineer output showing coverage metrics]
 
 ### What Will Be Merged
-- Branch: feature/$ARGUMENTS
+- Branch: [BRANCH_NAME]
 - Target: main
 - Files changed: [count]
 - Tests added: [count]
@@ -198,7 +225,7 @@ Present validation results and request user approval:
 
 This will:
 1. Commit all pending changes
-2. Merge feature/$ARGUMENTS into main
+2. Merge [BRANCH_NAME] into main
 3. Push to origin/main
 4. Optionally delete the feature branch
 
@@ -216,8 +243,8 @@ If user approves the merge:
 
 ```bash
 # Commit phase changes first
-!`git add -A`
-!`git commit -m "feat($ARGUMENTS): Complete phase implementation
+`git add -A`
+`git commit -m "feat([PHASE_FOLDER]): Complete phase implementation
 
 - All success criteria met
 - Quality validation passed
@@ -225,24 +252,24 @@ If user approves the merge:
 - Ready for production"`
 
 # Fetch latest main
-!`git fetch origin main`
+`git fetch origin main`
 
 # Switch to main and merge
-!`git checkout main`
-!`git merge --no-ff feature/$ARGUMENTS -m "merge: Complete $ARGUMENTS phase
+`git checkout main`
+`git merge --no-ff [BRANCH_NAME] -m "merge: Complete [PHASE_FOLDER] phase
 
 Quality validated by quality-guardian
 Tests validated by test-engineer
 Approved by user"`
 
 # Push to origin
-!`git push origin main`
+`git push origin main`
 
 # Optionally delete feature branch
 # Ask user: "Delete feature branch? [Y/N]"
 # If yes:
-!`git branch -d feature/$ARGUMENTS`
-!`git push origin --delete feature/$ARGUMENTS`
+`git branch -d [BRANCH_NAME]`
+`git push origin --delete [BRANCH_NAME]`
 ```
 
 ### 7. Commit Phase Changes (if merge rejected)
@@ -251,18 +278,18 @@ If merge was rejected, commit to feature branch only:
 
 ```bash
 # Stage all changes
-!`git add -A`
+`git add -A`
 
 # Create commit
-!`git commit -m "feat($ARGUMENTS): Complete phase implementation
+`git commit -m "feat([PHASE_FOLDER]): Complete phase implementation
 
-- Implemented all tasks from plan/$ARGUMENTS/
+- Implemented all tasks from plan/[PHASE_FOLDER]/
 - Met success criteria
 - Created handover documentation
 - Ready for next phase"`
 
 # Show commit
-!`git log -1 --stat`
+`git log -1 --stat`
 ```
 
 ### 8. Update Main TODO Status
@@ -271,7 +298,7 @@ Mark phase complete in any tracking:
 ```typescript
 TodoWrite({
   todos: [
-    { id: "$ARGUMENTS", content: "Phase $ARGUMENTS implementation", status: "completed" }
+    { id: "[PHASE_FOLDER]", content: "Phase [PHASE_FOLDER] implementation", status: "completed" }
   ]
 });
 ```
@@ -279,7 +306,7 @@ TodoWrite({
 ### 9. Generate Completion Summary
 
 ```markdown
-# Phase $ARGUMENTS Complete! 🎉
+# Phase [PHASE_FOLDER] Complete! 🎉
 
 ## Achievements
 - ✅ All tasks implemented
@@ -307,7 +334,7 @@ TodoWrite({
 OR
 
 ⚠️ **Code remains in feature branch** (if merge was rejected)
-- Branch: feature/$ARGUMENTS
+- Branch: [BRANCH_NAME]
 - Manual merge required when ready
 
 ### Option 1: Continue to Next Phase
@@ -317,14 +344,14 @@ Run: `/phases:1-prepare [next-phase-folder]`
 ```bash
 # Only needed if automatic merge was rejected
 git checkout main
-git merge feature/$ARGUMENTS
+git merge [BRANCH_NAME]
 git push origin main
 ```
 
 ### Option 3: Create Pull Request (alternative to direct merge)
 ```bash
 # Only if you prefer PR workflow instead of direct merge
-gh pr create --title "feat: Complete $ARGUMENTS phase" --body "$(cat plan/handovers/$ARGUMENTS-to-*.md)"
+gh pr create --title "feat: Complete [PHASE_FOLDER] phase" --body "$(cat plan/handovers/[PHASE_NUMBER]-to-*.md)"
 ```
 
 ## Phase Dependencies Unlocked

@@ -1,0 +1,8 @@
+enabled: true
+autoFix:
+  enabled: true
+validators:
+  biome:
+    enabled: true
+  typescript:
+    enabled: true

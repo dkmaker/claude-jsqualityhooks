@@ -6,30 +6,48 @@ allowed-tools: Read, Write, Edit, MultiEdit, Bash, TodoWrite
 
 # Phase Implementation
 
-You are implementing phase: `$ARGUMENTS` of the claude-jsqualityhooks project.
+## ARGUMENTS Section
+
+The provided argument is: `$ARGUMENTS`
+
+### Validation and Extraction
+Validate that the argument matches one of:
+- `phase-1-infrastructure`
+- `phase-2-validators`
+- `phase-3-autofix`
+- `phase-4-ai-output`
+- `phase-5-testing`
+
+If invalid, stop and report an error.
+
+### Extract Values
+- **PHASE_FOLDER**: The full folder name (same as the argument)
+- **PHASE_NUMBER**: Just the phase number (e.g., `phase-1`)
+- **PHASE_NAME**: The descriptive part (e.g., `infrastructure`)
+- **BRANCH_NAME**: The git branch (e.g., `feature/phase-1`)
 
 ## Implementation Process
 
 ### 1. Initialize Task Tracking
 
-Use **phase-orchestrator** agent to create TODO list from @plan/$ARGUMENTS/PLAN.md tasks:
+Use **phase-orchestrator** agent to create TODO list from @plan/[PHASE_FOLDER]/PLAN.md tasks:
 
 ```typescript
 // Create aligned TODO list
 TodoWrite({
   todos: [
-    // One item per task file in plan/$ARGUMENTS/
+    // One item per task file in plan/[PHASE_FOLDER]/
   ]
 });
 ```
 
 ### 2. Execute Each Task
 
-For each task file in @plan/$ARGUMENTS/:
+For each task file in @plan/[PHASE_FOLDER]/:
 
 #### A. Load Task Requirements
 Use **knowledge-navigator** agent to:
-- Read task file (e.g., @plan/$ARGUMENTS/task-01-*.md)
+- Read task file (e.g., @plan/[PHASE_FOLDER]/task-01-*.md)
 - Extract implementation TODOs
 - Identify references to docs/
 - Note success criteria
@@ -90,13 +108,13 @@ Focus on:
 After each task completion:
 ```bash
 # Verify TypeScript compilation
-!`pnpm typecheck`
+`pnpm typecheck`
 
 # Check code quality
-!`pnpm lint`
+`pnpm lint`
 
 # Run tests if available
-!`pnpm test`
+`pnpm test`
 ```
 
 ### 5. Handle Dependencies
@@ -142,7 +160,7 @@ If a task depends on future phase:
 
 Regularly update user with:
 ```markdown
-## Phase $ARGUMENTS Progress
+## Phase [PHASE_FOLDER] Progress
 
 ### Completed Tasks
 - ✅ [Task name]
@@ -163,4 +181,4 @@ When all tasks done:
 1. Verify all success criteria met
 2. Run final validation
 3. Commit changes
-4. Inform user to run: `/phases:3-validate $ARGUMENTS`
+4. Inform user to run: `/phases:3-validate [PHASE_FOLDER]`

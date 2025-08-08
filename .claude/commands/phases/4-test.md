@@ -6,7 +6,24 @@ allowed-tools: Read, Write, Edit, Bash, TodoWrite
 
 # Phase Testing
 
-You are testing phase: `$ARGUMENTS` of the claude-jsqualityhooks project.
+## ARGUMENTS Section
+
+The provided argument is: `$ARGUMENTS`
+
+### Validation and Extraction
+Validate that the argument matches one of:
+- `phase-1-infrastructure`
+- `phase-2-validators`
+- `phase-3-autofix`
+- `phase-4-ai-output`
+- `phase-5-testing`
+
+If invalid, stop and report an error.
+
+### Extract Values
+- **PHASE_FOLDER**: The full folder name (same as the argument)
+- **PHASE_NUMBER**: Just the phase number (e.g., `phase-1`)
+- **PHASE_NAME**: The descriptive part (e.g., `infrastructure`)
 
 ## Testing Strategy
 
@@ -22,61 +39,61 @@ Use **test-engineer** agent to check:
 #### Phase 1: Infrastructure Testing
 ```bash
 # Test configuration loading
-!`pnpm test tests/config/ 2>/dev/null || echo "Tests pending Phase 5"`
+`pnpm test tests/config/ 2>/dev/null || echo "Tests pending Phase 5"`
 
 # Test CLI commands manually
-!`npx . init --help`
-!`npx . version`
+`npx . init --help`
+`npx . version`
 
 # Verify build
-!`pnpm build`
-!`ls -la dist/`
+`pnpm build`
+`ls -la dist/`
 ```
 
 #### Phase 2: Validators Testing
 ```bash
 # Test version detection
-!`node -e "console.log(require('./package.json').devDependencies['@biomejs/biome'])"`
+`node -e "console.log(require('./package.json').devDependencies['@biomejs/biome'])"`
 
 # Test with sample file
-!`echo "const x=1;let y=2" > test-sample.js`
-!`npx @biomejs/biome check test-sample.js --reporter=json`
-!`rm test-sample.js`
+`echo "const x=1;let y=2" > test-sample.js`
+`npx @biomejs/biome check test-sample.js --reporter=json`
+`rm test-sample.js`
 ```
 
 #### Phase 3: Auto-Fix Testing
 ```bash
 # Create test file with issues
-!`echo "const x=1;let y='hello'" > test-fix.js`
+`echo "const x=1;let y='hello'" > test-fix.js`
 
 # Test fix application (if Biome available)
-!`npx @biomejs/biome check test-fix.js --write`
+`npx @biomejs/biome check test-fix.js --write`
 
 # Verify changes
-!`cat test-fix.js`
-!`rm test-fix.js`
+`cat test-fix.js`
+`rm test-fix.js`
 ```
 
 #### Phase 4: AI Output Testing
 ```bash
 # Test ANSI stripping
-!`node -e "console.log('\\x1b[31mRed\\x1b[0m'.replace(/\\x1b\\[[0-9;]*m/g, ''))"`
+`node -e "console.log('\\x1b[31mRed\\x1b[0m'.replace(/\\x1b\\[[0-9;]*m/g, ''))"`
 
 # Test JSON output
-!`echo '{"test": true}' | node -e "process.stdin.on('data', d => console.log(JSON.parse(d)))"`
+`echo '{"test": true}' | node -e "process.stdin.on('data', d => console.log(JSON.parse(d)))"`
 ```
 
 #### Phase 5: Complete Testing
 Use **test-engineer** agent to:
 ```bash
 # Run full test suite
-!`pnpm test`
+`pnpm test`
 
 # Check coverage
-!`pnpm test:coverage`
+`pnpm test:coverage`
 
 # Run performance tests
-!`pnpm test tests/performance/`
+`pnpm test tests/performance/`
 ```
 
 ### 3. Create Test Placeholders
@@ -98,7 +115,7 @@ describe('[Component]', () => {
 When automated testing not available:
 
 ```markdown
-## Manual Test Required: $ARGUMENTS
+## Manual Test Required: [PHASE_FOLDER]
 
 ### Test 1: [Feature Name]
 **Setup:**
@@ -125,19 +142,19 @@ When automated testing not available:
 If Phase 1 complete and debug system available:
 ```bash
 # Enable debug mode
-!`export CLAUDE_HOOKS_DEBUG=true`
+`export CLAUDE_HOOKS_DEBUG=true`
 
 # Run hook simulation
-!`echo '{"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"test.ts"}}' | node dist/cli.js`
+`echo '{"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"test.ts"}}' | node dist/cli.js`
 
 # Check debug output
-!`ls -la .debug/`
+`ls -la .debug/`
 ```
 
 ### 6. Generate Test Report
 
 ```markdown
-# Phase $ARGUMENTS Test Report
+# Phase [PHASE_FOLDER] Test Report
 
 ## Automated Tests
 - Tests Run: [count]
@@ -191,7 +208,7 @@ Use **test-engineer** agent to:
 
 Document for next phase:
 ```markdown
-## Testing Handover from $ARGUMENTS
+## Testing Handover from [PHASE_FOLDER]
 
 ### Tests Created
 - [List of test files]
@@ -210,14 +227,14 @@ Document for next phase:
 ## Next Steps
 
 ### If tests available and passing:
-User should run: `/phases:5-handover $ARGUMENTS`
+User should run: `/phases:5-handover [PHASE_FOLDER]`
 
 ### If tests deferred:
 1. Document deferrals
 2. Create placeholders
-3. Proceed to: `/phases:5-handover $ARGUMENTS`
+3. Proceed to: `/phases:5-handover [PHASE_FOLDER]`
 
 ### If tests failing:
 1. Fix issues
-2. Re-run: `/phases:4-test $ARGUMENTS`
+2. Re-run: `/phases:4-test [PHASE_FOLDER]`
 3. Do not proceed until resolved or documented

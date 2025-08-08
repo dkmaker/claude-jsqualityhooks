@@ -6,7 +6,33 @@ allowed-tools: Read, Bash, TodoWrite
 
 # Phase Preparation
 
-You are preparing to implement a phase of the claude-jsqualityhooks project. The phase folder is: `$ARGUMENTS`
+## ARGUMENTS Section
+
+The provided argument is: `$ARGUMENTS`
+
+### Validation and Extraction
+You must validate that the argument is one of these exact phase folder names:
+- `phase-1-infrastructure`
+- `phase-2-validators`
+- `phase-3-autofix`
+- `phase-4-ai-output`
+- `phase-5-testing`
+
+If the argument doesn't match one of these exactly, stop and report an error.
+
+### Extract Values
+From the validated argument, extract:
+- **PHASE_FOLDER**: The full folder name (same as the argument)
+- **PHASE_NUMBER**: Just the phase number part (e.g., `phase-1` from `phase-1-infrastructure`)
+- **PHASE_NAME**: The descriptive part after the number (e.g., `infrastructure` from `phase-1-infrastructure`)
+- **BRANCH_NAME**: The git branch name to use (e.g., `feature/phase-1`)
+
+### Example
+If argument is `phase-1-infrastructure`:
+- PHASE_FOLDER = `phase-1-infrastructure`
+- PHASE_NUMBER = `phase-1`
+- PHASE_NAME = `infrastructure`
+- BRANCH_NAME = `feature/phase-1`
 
 ## Preparation Steps
 
@@ -14,8 +40,8 @@ You are preparing to implement a phase of the claude-jsqualityhooks project. The
 
 Use the **knowledge-navigator** agent to:
 - Read the master plan at @plan/PLAN-OVERVIEW.md
-- Read the phase plan at @plan/$ARGUMENTS/PLAN.md
-- Identify all task files in @plan/$ARGUMENTS/task-*.md
+- Read the phase plan at @plan/[PHASE_FOLDER]/PLAN.md
+- Identify all task files in @plan/[PHASE_FOLDER]/task-*.md
 
 ### 2. Validate Prerequisites
 
@@ -27,24 +53,23 @@ Use the **phase-orchestrator** agent to:
 
 ### 3. Create Feature Branch
 
-Execute these commands:
+Using the extracted BRANCH_NAME value, execute these commands:
 ```bash
 # Ensure on main branch
 !`git checkout main`
 
 # Pull latest changes
 !`git pull origin main`
-
-# Create phase branch
-!`git checkout -b feature/$ARGUMENTS`
 ```
+
+Then create the feature branch using [BRANCH_NAME] (e.g., `feature/phase-1`).
 
 ### 4. Review Implementation Plan
 
 Present to the user:
 
 ```markdown
-## Phase Implementation Plan: $ARGUMENTS
+## Phase Implementation Plan: [PHASE_FOLDER]
 
 ### Overview
 [Summary from phase PLAN.md]
@@ -75,7 +100,7 @@ Present to the user:
 
 Ask the user:
 ```
-Ready to begin implementation of $ARGUMENTS?
+Ready to begin implementation of [PHASE_FOLDER]?
 
 This phase will:
 - [Key deliverable 1]
@@ -106,7 +131,7 @@ This project uses:
 
 After user approval, they should run:
 ```
-/phases:2-implement $ARGUMENTS
+/phases:2-implement [PHASE_FOLDER]
 ```
 
 This will begin the actual implementation using the typescript-implementer agent.
