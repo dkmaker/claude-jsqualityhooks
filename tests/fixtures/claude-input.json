@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/test/path/file.ts",
+    "content": "const x = 1;\nexport default x;"
+  },
+  "metadata": {
+    "timestamp": "2024-08-08T10:00:00Z"
+  }
+}

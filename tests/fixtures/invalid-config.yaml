@@ -1,0 +1,9 @@
+# Invalid configuration for testing
+enabled: "not-a-boolean"
+validators:
+  biome:
+    enabled: "also-not-a-boolean"
+    version: 999  # Should be string
+autoFix:
+  maxAttempts: 15  # Exceeds maximum
+timeout: 500  # Below minimum

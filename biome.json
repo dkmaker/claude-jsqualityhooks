@@ -1,0 +1,79 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.1.3/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/coverage/**", "!**/*.config.*"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noExtraBooleanCast": "error",
+        "noUselessCatch": "error",
+        "noAdjacentSpacesInRegex": "error",
+        "noArguments": "error"
+      },
+      "correctness": {
+        "noConstAssign": "error",
+        "noConstantCondition": "error",
+        "noEmptyCharacterClassInRegex": "error",
+        "noEmptyPattern": "error",
+        "noGlobalObjectCalls": "error",
+        "noInvalidConstructorSuper": "error",
+        "noNonoctalDecimalEscape": "error",
+        "noPrecisionLoss": "error",
+        "noSelfAssign": "error",
+        "noSetterReturn": "error",
+        "noSwitchDeclarations": "error",
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "error",
+        "noUnreachableSuper": "error",
+        "noUnsafeFinally": "error",
+        "noUnsafeOptionalChaining": "error",
+        "noUnusedLabels": "error",
+        "noUnusedVariables": "error",
+        "useIsNan": "error",
+        "useValidForDirection": "error",
+        "useYield": "error",
+        "noInvalidBuiltinInstantiation": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error"
+      },
+      "style": {
+        "useConst": "error"
+      },
+      "suspicious": {
+        "noWith": "error",
+        "noVar": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "attributePosition": "auto"
+    }
+  }
+}

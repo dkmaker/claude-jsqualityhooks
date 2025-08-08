@@ -6,14 +6,31 @@ allowed-tools: Read, Grep, Glob, Bash
 
 # Phase Validation
 
-You are validating the implementation of phase: `$ARGUMENTS` for claude-jsqualityhooks.
+## ARGUMENTS Section
+
+The provided argument is: `$ARGUMENTS`
+
+### Validation and Extraction
+Validate that the argument matches one of:
+- `phase-1-infrastructure`
+- `phase-2-validators`
+- `phase-3-autofix`
+- `phase-4-ai-output`
+- `phase-5-testing`
+
+If invalid, stop and report an error.
+
+### Extract Values
+- **PHASE_FOLDER**: The full folder name (same as the argument)
+- **PHASE_NUMBER**: Just the phase number (e.g., `phase-1`)
+- **PHASE_NAME**: The descriptive part (e.g., `infrastructure`)
 
 ## Validation Process
 
 ### 1. Load Success Criteria
 
 Use **knowledge-navigator** agent to:
-- Read @plan/$ARGUMENTS/PLAN.md#success-criteria
+- Read @plan/[PHASE_FOLDER]/PLAN.md#success-criteria
 - Extract Must Have, Should Have, Nice to Have items
 - Load task-specific criteria from each task file
 
@@ -24,17 +41,17 @@ Use **quality-guardian** agent to perform comprehensive review:
 #### A. Structural Validation
 ```bash
 # Verify project structure
-!`ls -la src/`
-!`ls -la tests/`
+`ls -la src/`
+`ls -la tests/`
 
 # Check TypeScript compilation
-!`pnpm typecheck`
+`pnpm typecheck`
 
 # Run linting
-!`pnpm lint`
+`pnpm lint`
 
 # Run formatting check
-!`pnpm format:check`
+`pnpm format:check`
 ```
 
 #### B. Requirements Checklist
@@ -81,30 +98,30 @@ Verify critical patterns implemented correctly:
 #### Configuration Pattern
 ```bash
 # Check for required warning format
-!`grep -n "showWarningAndExit" src/config/`
+`grep -n "showWarningAndExit" src/config/`
 ```
 
 #### Error Handling Pattern
 ```bash
 # Verify non-blocking errors
-!`grep -n "catch.*{" src/ -A 3 | grep -v "throw"`
+`grep -n "catch.*{" src/ -A 3 | grep -v "throw"`
 ```
 
 #### Version Detection Pattern
 ```bash
 # Check detection order
-!`grep -n "packageJson.*CLI.*default" src/validators/biome/`
+`grep -n "packageJson.*CLI.*default" src/validators/biome/`
 ```
 
 ### 4. Dependency Verification
 
 Check correct library versions:
 ```bash
-!`grep '"commander".*"14.0.0"' package.json`
-!`grep '"yaml".*"2.8.1"' package.json`
-!`grep '"zod".*"4.0.15"' package.json`
-!`grep '"execa".*"9.6.0"' package.json`
-!`grep '"fast-glob".*"3.3.3"' package.json`
+`grep '"commander".*"14.0.0"' package.json`
+`grep '"yaml".*"2.8.1"' package.json`
+`grep '"zod".*"4.0.15"' package.json`
+`grep '"execa".*"9.6.0"' package.json`
+`grep '"fast-glob".*"3.3.3"' package.json`
 ```
 
 ### 5. Scope Validation
@@ -118,7 +135,7 @@ Use **quality-guardian** agent to ensure:
 ### 6. Generate Validation Report
 
 ```markdown
-# Phase $ARGUMENTS Validation Report
+# Phase [PHASE_FOLDER] Validation Report
 
 ## Success Criteria Results
 
@@ -165,11 +182,11 @@ Use **quality-guardian** agent to ensure:
 ## Next Steps
 
 ### If PASS:
-User should run: `/phases:4-test $ARGUMENTS`
+User should run: `/phases:4-test [PHASE_FOLDER]`
 
 ### If FAIL:
 1. Fix identified issues
-2. Re-run: `/phases:3-validate $ARGUMENTS`
+2. Re-run: `/phases:3-validate [PHASE_FOLDER]`
 3. Do not proceed until validation passes
 
 ## Important Notes

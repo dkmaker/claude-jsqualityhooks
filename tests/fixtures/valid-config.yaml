@@ -1,0 +1,18 @@
+# Valid configuration for testing
+enabled: true
+include:
+  - "**/*.ts"
+  - "**/*.tsx"
+exclude:
+  - "node_modules/**"
+  - "dist/**"
+validators:
+  biome:
+    enabled: true
+    version: "auto"
+  typescript:
+    enabled: true
+autoFix:
+  enabled: true
+  maxAttempts: 3
+timeout: 5000
