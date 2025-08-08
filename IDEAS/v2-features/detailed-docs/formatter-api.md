@@ -1,10 +1,16 @@
-# Formatter API Reference
+# Claude JS Quality Hooks - Formatter API Reference
+
+Output formatting API for the `claude-jsqualityhooks` package.
 
 ## Main Formatter
+
+The primary output formatter for Claude JS Quality Hooks validation results.
 
 ### Class: AIOutputFormatter
 
 ```typescript
+import { AIOutputFormatter, Formatter, FormatterOptions } from 'claude-jsqualityhooks';
+
 class AIOutputFormatter implements Formatter {
   constructor(options: FormatterOptions);
   
@@ -76,7 +82,11 @@ interface SimplificationPattern {
 
 ### Basic Formatting
 
+Configuration is loaded from `claude-jsqualityhooks.config.yaml` by default.
+
 ```typescript
+import { AIOutputFormatter } from 'claude-jsqualityhooks';
+
 const formatter = new AIOutputFormatter({
   format: 'structured',
   simplifyMessages: true,

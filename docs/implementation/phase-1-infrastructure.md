@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 1 establishes the foundational infrastructure for the hooks system, including configuration loading, basic hook structure, and Claude Code API integration.
+Phase 1 establishes the foundational infrastructure for the Claude JS Quality Hooks system, including configuration loading, basic hook structure, and Claude Code API integration.
 
 ## Goals
 
@@ -16,16 +16,42 @@ Phase 1 establishes the foundational infrastructure for the hooks system, includ
 
 ### Step 1: Project Setup
 
-```bash
-# Initialize project
-npm init -y
-npm install typescript @types/node
-npx tsc --init
+#### Enable pnpm with Corepack
 
-# Install core dependencies
-npm install yaml
-npm install --save-dev @types/yaml
+```bash
+# Enable corepack (included with Node.js 18+)
+corepack enable
+
+# Prepare pnpm
+corepack prepare pnpm@latest --activate
+
+# Verify pnpm is available
+pnpm --version
 ```
+
+#### Initialize Project
+
+```bash
+# Initialize Claude JS Quality Hooks project
+pnpm init
+
+# Install core dependencies (production)
+pnpm add commander yaml zod execa fast-glob
+
+# Install dev dependencies
+pnpm add -D typescript @types/node tsup vitest @biomejs/biome
+
+# Initialize TypeScript
+pnpm exec tsc --init
+```
+
+**Key Libraries**:
+- `commander` - CLI framework for init/install commands
+- `yaml` - YAML configuration file parsing
+- `zod` - Runtime type validation with TS inference
+- `execa` - Modern subprocess execution for Biome/TS
+- `fast-glob` - Fast file pattern matching
+- `tsup` - Zero-config TypeScript bundler
 
 ### Step 2: TypeScript Configuration
 
@@ -34,7 +60,7 @@ Create `tsconfig.json`:
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "ESNext",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -52,49 +78,99 @@ Create `tsconfig.json`:
 }
 ```
 
-### Step 3: Create Type Definitions
+### Step 3: Build Configuration with tsup
+
+Create `tsup.config.ts`:
+```typescript
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/index.ts', 'src/cli.ts'],
+  format: ['esm', 'cjs'],
+  dts: true,
+  sourcemap: true,
+  clean: true,
+  minify: process.env.NODE_ENV === 'production',
+  shims: true,
+  external: [],
+  target: 'node18',
+  splitting: false,
+  treeshake: true,
+});
+```
+
+Add scripts to `package.json`:
+```json
+{
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "dev": "tsup --watch --onSuccess 'node dist/cli.js'",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+### Step 4: Create Type Definitions
 
 Create `src/types/index.ts` - See [interfaces.md](../api/interfaces.md) for complete types.
 
-### Step 4: Configuration Loader
+### Step 5: Configuration Loader
 
 Create `src/config/yamlConfigLoader.ts`:
 ```typescript
-import * as fs from 'fs/promises';
-import * as yaml from 'yaml';
-import * as path from 'path';
-import { Config } from '../types';
+import { readFile, access } from 'node:fs/promises';
+import { parse } from 'yaml';
+import { resolve } from 'node:path';
+import { z } from 'zod';
+import type { Config } from '../types';
 
 export class YamlConfigLoader {
   private config: Config | null = null;
+  private readonly CONFIG_FILE = 'claude-jsqualityhooks.config.yaml';
   
-  async load(configPath?: string): Promise<Config> {
-    const resolvedPath = await this.resolveConfigPath(configPath);
-    const content = await fs.readFile(resolvedPath, 'utf-8');
-    this.config = yaml.parse(content) as Config;
+  async load(): Promise<Config> {
+    const configPath = resolve(process.cwd(), this.CONFIG_FILE);
+    
+    // Check if config file exists
+    try {
+      await access(configPath);
+    } catch {
+      this.showWarningAndExit();
+    }
+    
+    // Load and parse config
+    const content = await readFile(configPath, 'utf-8');
+    this.config = parse(content) as Config;
     return this.validateConfig(this.config);
   }
   
-  private async resolveConfigPath(configPath?: string): Promise<string> {
-    const paths = [
-      configPath,
-      './claude-hooks.config.yaml',
-      './config/claude-hooks.yaml',
-      path.join(process.env.HOME || '', '.claude-hooks/config.yaml')
-    ].filter(Boolean) as string[];
-    
-    for (const p of paths) {
-      try {
-        await fs.access(p);
-        return p;
-      } catch {}
-    }
-    
-    throw new Error('Configuration file not found');
+  private showWarningAndExit(): never {
+    console.warn(`
+⚠️  Configuration file not found: ${this.CONFIG_FILE}
+
+To get started:
+1. Run: npx claude-jsqualityhooks init
+   This will create ${this.CONFIG_FILE} in your project root
+
+2. Or manually create ${this.CONFIG_FILE} with basic config:
+   ---
+   enabled: true
+   validators:
+     biome:
+       enabled: true
+
+Without this configuration file, the hook will not run.
+For details, see: https://github.com/dkmaker/claude-jsqualityhooks#configuration
+`);
+    process.exit(0); // Exit gracefully, not an error
   }
   
   private validateConfig(config: Config): Config {
     // Add validation logic
+    if (!config.enabled) {
+      console.warn('⚠️  Hooks are disabled in configuration');
+    }
     return config;
   }
 }
@@ -109,35 +185,23 @@ import { Hook, FileInfo, HookResult } from '../types';
 export abstract class BaseHook implements Hook {
   abstract name: string;
   
-  constructor(
-    protected config: any,
-    public enabled: boolean = true,
-    public timeout: number = 5000,
-    public failureStrategy: 'block' | 'warn' | 'ignore' = 'warn'
-  ) {}
+  constructor(protected config: any) {}
   
   abstract execute(file: FileInfo): Promise<HookResult>;
   
-  protected async executeWithTimeout(
-    operation: () => Promise<HookResult>
-  ): Promise<HookResult> {
-    return Promise.race([
-      operation(),
-      this.createTimeout()
-    ]);
-  }
+  // Default configuration
+  protected readonly timeout = 5000;
+  protected readonly failureStrategy = 'warn';
   
-  private createTimeout(): Promise<HookResult> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: false,
-          modified: false,
-          error: new Error(`Hook timeout after ${this.timeout}ms`),
-          duration: this.timeout
-        });
-      }, this.timeout);
-    });
+  protected withTimeout<T>(promise: Promise<T>): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Hook timeout after ${this.timeout}ms`));
+        }, this.timeout);
+      })
+    ]);
   }
 }
 ```
@@ -182,8 +246,11 @@ import { HookManager } from './hooks/hookManager';
 
 export async function initialize() {
   const configLoader = new YamlConfigLoader();
+  
+  // Will exit with warning if config doesn't exist
   const config = await configLoader.load();
   
+  // Only initialize if config exists and is valid
   const hookManager = new HookManager(config);
   
   // Register with Claude Code API

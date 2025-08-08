@@ -2,371 +2,186 @@
 
 ## Overview
 
-The Claude Hooks Format & Lint Validator uses a YAML configuration file (`claude-hooks.config.yaml`) for all settings. This guide explains each configuration option in detail.
+Claude JS Quality Hooks uses a single YAML configuration file (`claude-jsqualityhooks.config.yaml`) for all configuration settings.
 
-## Configuration File Location
+## Configuration File Requirement
 
-The system looks for configuration in the following order:
-1. `./claude-hooks.config.yaml` (current directory)
-2. `./config/claude-hooks.yaml`
-3. `~/.claude-hooks/config.yaml` (user home)
-4. Default configuration (built-in)
+**IMPORTANT:** The configuration file `claude-jsqualityhooks.config.yaml` MUST exist in your project root directory.
 
-## Global Settings
+- **Location:** `./claude-jsqualityhooks.config.yaml` (current directory only)
+- **Required:** Yes - the tool will NOT run without this file
 
-### Basic Configuration
+### Quick Setup
 
-```yaml
-# Enable or disable all hooks
-enabled: true
-
-# Automatically apply fixes
-autoFix: true
-
-# Block operations on errors (not recommended)
-blockOnErrors: false
+```bash
+npx claude-jsqualityhooks init
 ```
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `enabled` | boolean | `true` | Master switch for all hooks |
-| `autoFix` | boolean | `true` | Apply automatic fixes when available |
-| `blockOnErrors` | boolean | `false` | Prevent file operations if validation fails |
+Or create manually:
 
-## Validators Configuration
+```yaml
+# claude-jsqualityhooks.config.yaml
+enabled: true
+validators:
+  biome: true
+```
 
-### Biome Validator
+## Configuration Options
+
+### Global Settings
+
+```yaml
+enabled: true   # Master switch
+autoFix: true   # Apply fixes automatically
+```
+
+### Validator Settings
 
 ```yaml
 validators:
   biome:
     enabled: true
-    configPath: ./biome.json
-    autoFix: true
-    version: auto  # auto | 1.x | 2.x
-    outputFormat: json
-    
-    rules:
-      format: true
-      lint: true
-      organize: true
-      complexity: true
-    
-    fixUnsafe: false
-    
-    # Version-specific settings
-    v1Settings:
-      useLegacyFlags: true
-      reporter: json
-    
-    v2Settings:
-      useWorkspace: true
-      reporter: json
-      noColors: true
+    version: auto              # auto | 1.x | 2.x (ESSENTIAL!)
+    configPath: ./biome.json  # Optional custom path
+  typescript:
+    enabled: true
+    configPath: ./tsconfig.json  # Optional custom path
 ```
 
-#### Biome Options
+#### Biome Version Management
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable Biome validation |
-| `configPath` | string | `./biome.json` | Path to Biome configuration |
-| `autoFix` | boolean | `true` | Apply Biome fixes |
-| `version` | string | `auto` | Biome version (auto-detect or specify) |
-| `outputFormat` | string | `json` | Output format for parsing |
-| `rules.format` | boolean | `true` | Enable formatting checks |
-| `rules.lint` | boolean | `true` | Enable linting checks |
-| `rules.organize` | boolean | `true` | Enable import organization |
-| `rules.complexity` | boolean | `true` | Enable complexity checks |
-| `fixUnsafe` | boolean | `false` | Apply potentially unsafe fixes |
+The `version` option is **critical** for compatibility:
 
-### TypeScript Validator
+- `auto` (recommended) - Automatically detects Biome version
+- `1.x` - Force Biome 1.x command syntax
+- `2.x` - Force Biome 2.x command syntax
+
+This handles the different command syntax between Biome versions:
+- Biome 1.x uses `--apply` for fixes
+- Biome 2.x uses `--write` for fixes
+
+### File Patterns
 
 ```yaml
+# Optional - has smart defaults
+include:
+  - "src/**/*.{ts,tsx,js,jsx}"
+
+exclude:
+  - "node_modules/**"
+  - "dist/**"
+```
+
+If not specified, defaults are:
+- **Include**: All `.ts`, `.tsx`, `.js`, `.jsx` files
+- **Exclude**: node_modules, dist, build directories
+
+## Complete Examples
+
+### Minimal
+
+```yaml
+enabled: true
 validators:
+  biome: true
+```
+
+### Recommended
+
+```yaml
+enabled: true
+autoFix: true
+validators:
+  biome:
+    enabled: true
+    version: auto
+  typescript: true
+```
+
+### Complete Configuration
+
+```yaml
+enabled: true
+autoFix: true
+
+validators:
+  biome:
+    enabled: true
+    version: auto
+    configPath: ./biome.json
   typescript:
     enabled: true
     configPath: ./tsconfig.json
-    strict: true
-    checkJs: false
-    incremental: true
-    noEmitOnError: true
-    
-    diagnosticOptions:
-      skipLibCheck: true
-      skipDefaultLibCheck: true
-      suppressExcessPropertyErrors: false
-```
 
-#### TypeScript Options
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable TypeScript validation |
-| `configPath` | string | `./tsconfig.json` | Path to TypeScript configuration |
-| `strict` | boolean | `true` | Use strict type checking |
-| `checkJs` | boolean | `false` | Type-check JavaScript files |
-| `incremental` | boolean | `true` | Use incremental compilation |
-| `noEmitOnError` | boolean | `true` | Don't emit on type errors |
-
-## File Patterns
-
-### Include and Exclude Patterns
-
-```yaml
-# Files to validate
 include:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
-  - "**/*.mjs"
-  - "**/*.cjs"
-  - "**/*.json"
-  - "**/*.jsonc"
+  - "src/**/*.{ts,tsx,js,jsx}"
 
-# Files to skip
 exclude:
   - "node_modules/**"
   - "dist/**"
   - "build/**"
-  - "coverage/**"
-  - "*.min.js"
-  - "*.bundle.js"
-  - ".git/**"
-  - "**/*.d.ts"
 ```
 
-Pattern syntax follows glob patterns:
-- `*` - Match any characters except `/`
-- `**` - Match any characters including `/`
-- `?` - Match single character
-- `[abc]` - Match any character in brackets
-- `{a,b}` - Match either pattern
+## Smart Defaults
 
-## Hook Settings
+Everything else is handled automatically:
 
-### Hook Configuration
+- **Output**: AI-optimized JSON format
+- **Timeouts**: 5 seconds
+- **Performance**: Parallel execution with caching
+- **Fix Order**: Format → Imports → Lint
+- **Failure Handling**: Warn but don't block
+- **Notifications**: No colors, relative paths, simplified messages
+- **Default includes**: All JS/TS files if not specified
+- **Default excludes**: node_modules, dist, build if not specified
 
-```yaml
-hooks:
-  postWrite:
-    enabled: true
-    timeout: 5000
-    failureStrategy: warn
-    autoFix: true
-    reportToUser: true
-    runValidators:
-      - biome
-      - typescript
-  
-  preRead:
-    enabled: false
-    timeout: 2000
-    failureStrategy: ignore
-    autoFix: false
-  
-  batchOperation:
-    enabled: true
-    timeout: 10000
-    failureStrategy: warn
-    parallelProcessing: true
-    maxBatchSize: 50
-```
-
-#### Hook Options
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `enabled` | boolean | varies | Enable this hook |
-| `timeout` | number | `5000` | Timeout in milliseconds |
-| `failureStrategy` | string | `warn` | How to handle failures |
-| `autoFix` | boolean | `true` | Apply fixes in this hook |
-| `reportToUser` | boolean | `true` | Send notifications to Claude |
-
-#### Failure Strategies
-
-- `block` - Stop operation if validation fails (not recommended)
-- `warn` - Continue but report issues (default)
-- `ignore` - Continue silently without reporting
-
-## Notification Settings
-
-### AI-Optimized Output
-
-```yaml
-notifications:
-  # Output format
-  format: structured  # structured | plain | verbose
-  
-  # Content settings
-  showDiffs: true
-  showFixSuggestions: true
-  includeContext: true
-  maxContextLines: 3
-  maxDiffLines: 30
-  
-  # AI optimization
-  removeColors: true
-  removeDecorations: true
-  useRelativePaths: true
-  simplifyMessages: true
-  
-  # Organization
-  groupByFile: true
-  sortBy: severity  # severity | file | type
-  collapseFixed: true
-  highlightUnfixed: true
-```
-
-#### Notification Options
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `format` | string | `structured` | Output format style |
-| `showDiffs` | boolean | `true` | Show before/after diffs |
-| `includeContext` | boolean | `true` | Include code context |
-| `maxContextLines` | number | `3` | Lines of context to show |
-| `removeColors` | boolean | `true` | Strip ANSI color codes |
-| `simplifyMessages` | boolean | `true` | Simplify technical messages |
-| `groupByFile` | boolean | `true` | Group issues by file |
-| `sortBy` | string | `severity` | Sort order for issues |
-
-## Performance Settings
-
-### Optimization Options
-
-```yaml
-performance:
-  parallel: true
-  maxWorkers: 4
-  cache: true
-  cacheTimeout: 300000  # 5 minutes
-  debounceDelay: 500
-```
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `parallel` | boolean | `true` | Run validators in parallel |
-| `maxWorkers` | number | `4` | Maximum parallel workers |
-| `cache` | boolean | `true` | Cache validation results |
-| `cacheTimeout` | number | `300000` | Cache TTL in milliseconds |
-| `debounceDelay` | number | `500` | Delay for rapid changes |
-
-## Severity Configuration
-
-### Issue Severity Levels
-
-```yaml
-severity:
-  typeError: error
-  formatIssue: warning
-  lintIssue: warning
-  importOrder: info
-  complexity: warning
-```
-
-Severity levels:
-- `error` - Critical issues that must be fixed
-- `warning` - Issues that should be addressed
-- `info` - Informational messages
-
-## Fix Priority
-
-### Fix Application Order
-
-```yaml
-fixPriority:
-  format: 100
-  imports: 90
-  lint: 80
-  complexity: 50
-```
-
-Higher numbers are fixed first. This ensures formatting happens before other fixes to avoid conflicts.
-
-## Complete Example
-
-See [example-config.yaml](./example-config.yaml) for a complete configuration file with all options.
-
-## Configuration Schema
-
-The configuration file supports JSON Schema validation:
-
-```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/.../claude-hooks-schema.json
-```
-
-## Best Practices
-
-1. **Start with defaults** - The default configuration works well for most projects
-2. **Enable incrementally** - Start with formatting, add linting later
-3. **Test fix settings** - Use `fixUnsafe: false` initially
-4. **Adjust timeouts** - Increase for large files or slow systems
-5. **Use cache** - Improves performance significantly
-6. **Group by file** - Makes output easier to understand
 
 ## Troubleshooting
 
-### Common Issues
+### Biome Version Issues
 
-1. **Configuration not found**
-   - Check file name is exactly `claude-hooks.config.yaml`
-   - Verify file is in project root
-   - Check YAML syntax is valid
+If auto-detection fails, specify version explicitly:
 
-2. **Validators not running**
-   - Ensure validator is enabled
-   - Check configPath points to valid config
-   - Verify tool is installed (Biome, TypeScript)
+```yaml
+validators:
+  biome:
+    version: 2.x  # Force v2 syntax
+```
 
-3. **Performance issues**
-   - Enable caching
-   - Increase debounce delay
-   - Reduce maxWorkers if system is slow
-   - Exclude large files or directories
+### Custom Config Paths
 
-4. **Too many notifications**
-   - Set `collapseFixed: true`
-   - Increase `maxDiffLines`
-   - Use `summaryOnly` for large changes
+If your config files are in non-standard locations:
+
+```yaml
+validators:
+  biome:
+    configPath: ./config/biome.json
+  typescript:
+    configPath: ./config/tsconfig.json
+```
+
+### Disable a Validator
+
+```yaml
+validators:
+  biome: true
+  typescript: false  # Disabled
+```
 
 ## Migration Guide
 
-### From Environment Variables
+### Updating Configuration
 
-If migrating from environment variables:
+To modify your configuration:
 
-```bash
-# Old (environment variables)
-CLAUDE_HOOKS_ENABLED=true
-CLAUDE_HOOKS_AUTO_FIX=true
+1. Edit the `claude-jsqualityhooks.config.yaml` file
+2. Add or modify the options you need
+3. Test with your project files
 
-# New (YAML)
-enabled: true
-autoFix: true
-```
+## Best Practices
 
-### From JSON Configuration
-
-If migrating from JSON:
-
-```json
-// Old (JSON)
-{
-  "enabled": true,
-  "validators": {
-    "biome": {
-      "enabled": true
-    }
-  }
-}
-```
-
-```yaml
-# New (YAML)
-enabled: true
-validators:
-  biome:
-    enabled: true
-```
+- Start with the minimal configuration and add options as needed
+- Use `version: auto` for Biome to handle version differences automatically
+- Rely on smart defaults for file patterns unless you have specific requirements
+- Keep the configuration file in your project root directory
+- Test your configuration with a few files before running on your entire codebase

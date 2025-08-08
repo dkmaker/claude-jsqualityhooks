@@ -11,35 +11,48 @@ A TypeScript-based Claude Code Hooks extension that ensures code quality through
 This project provides post-write hooks for Claude Code that:
 - Validate code immediately after Claude writes files
 - Automatically fix formatting and linting issues
-- Support both Biome 1.x and 2.x with auto-detection
+- Support multiple Biome versions with auto-detection
 - Provide AI-optimized output for clear error reporting
 - Maintain context synchronization with Claude
 
 ## Quick Start
 
-1. **Install Package**
+**No installation required!** Use directly with `npx`:
+
+1. **Initialize Configuration**
    ```bash
-   npm install claude-jsqualityhooks
-   npm install --save-dev @biomejs/biome@^2  # or @^1 for v1.x
+   npx claude-jsqualityhooks init
+   ```
+   This creates `claude-jsqualityhooks.config.yaml` and detects your environment.
+
+2. **Install Biome in your project**
+   ```bash
+   npm install --save-dev @biomejs/biome  # Automatically detects version
    ```
 
-2. **Configure**
+3. **Register with Claude**
    ```bash
-   cp docs/config/example-config.yaml claude-hooks.config.yaml
-   # Edit configuration as needed
+   npx claude-jsqualityhooks install
    ```
 
-3. **Build & Register**
-   ```bash
-   npm run build
-   npm run register-hooks
-   ```
+That's it! The hooks will now run automatically when Claude modifies files.
+
+### Optional: Global Installation
+
+For frequent CLI usage, you can install globally:
+```bash
+# Always use npx - no installation needed
+npx claude-jsqualityhooks [command]
+claude-jsqualityhooks version  # Now available without npx
+```
+
+See [Installation Guide](./INSTALLATION.md) for detailed setup options.
 
 ## Key Features
 
 - ✅ **Automatic Validation** - TypeScript type checking and Biome linting
 - ✅ **Auto-Fix** - Automatically fixes formatting and safe linting issues
-- ✅ **Version Detection** - Works with both Biome 1.x and 2.x
+- ✅ **Version Detection** - Works with multiple Biome versions
 - ✅ **AI-Optimized Output** - Clean, structured output for Claude
 - ✅ **Performance** - Parallel processing and intelligent caching
 
@@ -90,10 +103,10 @@ This project provides post-write hooks for Claude Code that:
 
 ## Requirements
 
-- Node.js v18+
+- Node.js 18+
 - Claude Code CLI
 - TypeScript 5.x
-- Biome 1.x or 2.x
+- Biome (current versions)
 
 ## License
 

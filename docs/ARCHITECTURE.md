@@ -1,43 +1,38 @@
 # System Architecture
 
+**Project**: Claude JS Quality Hooks  
+**Package**: `claude-jsqualityhooks`  
+**Repository**: https://github.com/dkmaker/claude-jsqualityhooks  
+**Developer**: DKMaker
+
 ## Overview
 
-The Claude Code Hooks Format & Lint Validator is built as a modular TypeScript application that intercepts file operations from Claude Code, validates the written content, applies automatic fixes, and reports results back to Claude in an AI-optimized format.
+Claude JS Quality Hooks is built as a modular TypeScript application that intercepts file operations from Claude Code, validates the written content, applies automatic fixes, and reports results back to Claude in an AI-optimized format.
 
 ## Architecture Diagram
 
 ```
 Claude Code API
      ↓
-Hook Manager (TypeScript)
+Hook Manager (Post-Write Only)
      ↓
-┌────────────┬──────────────┬──────────────┐
-│ Post-Write │   Pre-Read   │    Batch     │
-│   Hook     │  Hook (opt)  │  Operation   │
-└────────────┴──────────────┴──────────────┘
-     ↓              ↓              ↓
 ┌─────────────────────────────────────────┐
 │         Validation Pipeline              │
 │  ┌─────────────┐  ┌──────────────┐      │
 │  │   Biome     │  │  TypeScript  │      │
 │  │  Validator  │  │  Validator   │      │
+│  │             │  │              │      │
 │  └─────────────┘  └──────────────┘      │
 └─────────────────────────────────────────┘
      ↓              ↓              
 ┌─────────────────────────────────────────┐
-│           Fix Engine                     │
-│  ┌─────────────┐  ┌──────────────┐      │
-│  │  Auto-Fix   │  │   Conflict   │      │
-│  │   Manager   │  │   Resolver   │      │
-│  └─────────────┘  └──────────────┘      │
+│            Auto-Fix Engine               │
+│                                         │
 └─────────────────────────────────────────┘
      ↓
 ┌─────────────────────────────────────────┐
 │      AI Output Formatter                 │
-│  ┌─────────────┐  ┌──────────────┐      │
-│  │    JSON     │  │   Message    │      │
-│  │   Parser    │  │  Simplifier  │      │
-│  └─────────────┘  └──────────────┘      │
+│                                         │
 └─────────────────────────────────────────┘
      ↓
 Claude Notification System
@@ -48,55 +43,51 @@ Claude Notification System
 ### 1. Hook Manager
 **Location**: `src/hooks/`
 
-Central orchestrator for all hook operations:
-- Manages hook lifecycle and event handling
-- Routes file operations to appropriate validators
-- Handles error recovery and fallback strategies
-- Maintains session state and caching
+Post-write hook handler:
+- Captures post-write events only
+- Routes to validators
+- Uses smart defaults
 
 ### 2. Validation Pipeline
 **Location**: `src/validators/`
 
-Parallel validation execution system:
-- Configurable validation order and priority
-- Result aggregation and conflict resolution
-- Cache management for repeated validations
-- Version detection for tool compatibility
+Parallel validation:
+- Runs Biome and TypeScript validators
+- Biome version auto-detection
+- Result aggregation
 
 ### 3. Fix Engine
 **Location**: `src/fixers/`
 
-Intelligent code modification system:
-- AST-based transformations for safe fixes
-- Text-based fixes for formatting issues
-- Conflict detection between multiple fixers
-- Rollback capability for failed fixes
+Auto-fix system:
+- Applies Biome fixes
+- Applies TypeScript quick fixes
+- Sequential application
 
 ### 4. AI Output Formatter
 **Location**: `src/formatters/`
 
-Standardizes output for Claude consumption:
-- Parses JSON output from Biome
-- Formats TypeScript diagnostics
+AI-optimized output:
+- Parses JSON from validators
 - Removes terminal decorations
 - Creates structured responses
+- Standardized format
 
 ### 5. Notification Service
 **Location**: `src/notifications/`
 
-Communication layer with Claude:
-- Real-time file change updates
-- Detailed change logs and diffs
-- Error reporting with suggestions
-- Context synchronization
+Claude communication:
+- File change notifications
+- Error reporting
+- Structured output
 
 ## Technology Stack
 
 - **Runtime**: Node.js v18+
-- **Language**: TypeScript 5.x
+- **Language**: TypeScript
 - **Validation Tools**:
   - TypeScript Compiler API for type checking
-  - Biome 1.x or 2.x for formatting and linting (auto-detected)
+  - Biome for formatting and linting (auto-detected)
 - **Configuration**: YAML for human-readable settings
 - **Testing**: Jest/Vitest with full coverage
 - **Build Tool**: esbuild/tsup for fast builds
@@ -104,12 +95,10 @@ Communication layer with Claude:
 ## Project Structure
 
 ```
-claude-hooks-format-lint/
+claude-jsqualityhooks/
 ├── src/
 │   ├── hooks/
-│   │   ├── postWrite.ts
-│   │   ├── preRead.ts
-│   │   └── batchOperation.ts
+│   │   └── postWrite.ts         # Only post-write hook
 │   ├── validators/
 │   │   ├── biome/
 │   │   │   ├── index.ts
@@ -118,14 +107,9 @@ claude-hooks-format-lint/
 │   │   │   └── v2Adapter.ts
 │   │   └── typescript.ts
 │   ├── fixers/
-│   │   ├── autoFix.ts
-│   │   └── conflictResolver.ts
+│   │   └── autoFix.ts
 │   ├── formatters/
-│   │   ├── aiOutputFormatter.ts
-│   │   ├── biomeJsonParser.ts
-│   │   └── typescriptFormatter.ts
-│   ├── notifications/
-│   │   └── claudeNotifier.ts
+│   │   └── aiOutputFormatter.ts
 │   ├── config/
 │   │   └── yamlConfigLoader.ts
 │   ├── types/
@@ -136,7 +120,7 @@ claude-hooks-format-lint/
 │   ├── integration/
 │   └── fixtures/
 ├── docs/
-├── claude-hooks.config.yaml
+├── claude-jsqualityhooks.config.yaml
 ├── biome.json
 ├── tsconfig.json
 ├── package.json
@@ -154,36 +138,21 @@ claude-hooks-format-lint/
 7. **Formatting**: Results formatted for AI consumption
 8. **Notification**: Claude receives structured feedback
 
-## Performance Considerations
+## Performance
 
-### Parallel Processing
-- Validators run concurrently when possible
-- Batch operations process multiple files simultaneously
-- Worker threads for CPU-intensive operations
-
-### Caching Strategy
-- Version detection cached per session
-- Validation results cached with TTL
-- Configuration cached and watched for changes
-
-### Optimization Techniques
-- Incremental TypeScript compilation
-- Debouncing for rapid file changes
-- Lazy loading of validators
-- Efficient diff algorithms
+Performance optimizations use smart defaults:
+- Validators run in parallel automatically
+- Biome version cached per session
+- Debouncing for rapid changes
+- Handled internally with minimal configuration
 
 ## Error Handling
 
-### Graceful Degradation
-- Fallback to warning mode if validation fails
-- Continue with remaining validators if one fails
-- Report partial results rather than failing completely
-
-### Recovery Mechanisms
-- Automatic retry with exponential backoff
-- Rollback capability for failed fixes
-- Session state preservation
-- Detailed error logging
+Robust error handling:
+- Always warns, never blocks
+- Continues with remaining validators if one fails
+- Reports partial results
+- Comprehensive error logging
 
 ## Security Considerations
 

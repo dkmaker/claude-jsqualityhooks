@@ -1,213 +1,102 @@
 # Hook System
 
+> Part of **Claude JS Quality Hooks** (`claude-jsqualityhooks`)
+
 ## Overview
 
-The hook system intercepts file operations from Claude Code and triggers validation and fixing workflows. The system is designed to be non-blocking and transparent to the user while ensuring code quality.
+The hook system intercepts post-write operations from Claude Code and triggers validation and fixing workflows. The system uses smart defaults with minimal configuration required.
 
-## Hook Types
-
-### 1. Post-Write Hook
+## Post-Write Hook
 
 **Purpose**: Primary validation and fixing mechanism that runs after Claude writes or modifies files.
 
 **Trigger Events**:
 - File creation
 - File modification
-- Batch file operations
+- Any write operation from Claude
 
 **Workflow**:
 ```typescript
-// Simplified workflow
 async function onPostWrite(file: FileInfo): Promise<void> {
-  // 1. Check if file should be validated
+  // 1. Check if file should be validated (based on include/exclude)
   if (!shouldValidate(file)) return;
   
   // 2. Run validators in parallel
-  const results = await runValidators(file);
+  const results = await Promise.all([
+    biomeValidator.validate(file),
+    typescriptValidator.validate(file)
+  ]);
   
   // 3. Apply auto-fixes if enabled
-  if (config.autoFix && results.hasFixableIssues) {
+  if (config.autoFix && hasFixableIssues(results)) {
     const fixed = await applyFixes(file, results);
     await writeFile(file.path, fixed.content);
   }
   
-  // 4. Notify Claude about changes
-  await notifyClaude(results);
+  // 4. Notify Claude with AI-optimized format
+  await notifyClaude(formatForAI(results));
 }
 ```
 
 **Key Features**:
 - Validates complete file content
-- Applies automatic fixes
-- Updates file if modified
-- Notifies Claude of changes
-- Non-blocking execution
+- Applies automatic fixes when enabled
+- Biome version auto-detection
+- AI-optimized output format
+- Non-blocking operation (warns but doesn't block)
 
-### 2. Pre-Read Hook (Optional)
+## Smart Defaults
 
-**Purpose**: Ensures Claude reads clean, properly formatted code.
+The hook system uses these defaults:
+- **Timeout**: 5 seconds
+- **Failure Strategy**: Warn but don't block
+- **Execution**: Parallel validators
+- **Output**: AI-optimized format
+- **Fix Order**: Format → Imports → Lint
 
-**Trigger Events**:
-- Before file read operations
-- Before file content is sent to Claude
+## File Pattern Matching
 
-**Use Cases**:
-- Clean up files before Claude processes them
-- Ensure consistent formatting in Claude's context
-- Fix known issues proactively
-
-**Configuration**:
-```yaml
-hooks:
-  preRead:
-    enabled: false  # Disabled by default
-    timeout: 2000
-    failureStrategy: ignore
-    autoFix: false
-```
-
-### 3. Batch Operation Hook
-
-**Purpose**: Efficiently handle multiple file operations.
-
-**Trigger Events**:
-- Multiple files modified simultaneously
-- Bulk operations from Claude
-- Project-wide refactoring
-
-**Optimization**:
-- Process files in parallel
-- Share validation context
-- Aggregate results
-- Single notification to Claude
-
-## Hook Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant Claude
-    participant HookManager
-    participant Validator
-    participant Fixer
-    participant Notifier
-    
-    Claude->>HookManager: Write File
-    HookManager->>HookManager: Check Config
-    HookManager->>Validator: Validate File
-    Validator-->>HookManager: Issues Found
-    HookManager->>Fixer: Apply Fixes
-    Fixer-->>HookManager: File Updated
-    HookManager->>Notifier: Format Results
-    Notifier->>Claude: Send Notification
-```
-
-## Configuration
-
-### Hook-Specific Settings
+Files are validated based on the optional `include` and `exclude` patterns:
 
 ```yaml
-hooks:
-  postWrite:
-    enabled: true
-    timeout: 5000
-    failureStrategy: warn  # block | warn | ignore
-    autoFix: true
-    reportToUser: true
-    runValidators:
-      - biome
-      - typescript
+# Optional - has smart defaults
+include:
+  - "src/**/*.{ts,tsx,js,jsx}"
+exclude:
+  - "node_modules/**"
+  - "dist/**"
 ```
 
-### Failure Strategies
+If not specified:
+- **Default Include**: All `.ts`, `.tsx`, `.js`, `.jsx` files
+- **Default Exclude**: `node_modules/`, `dist/`, `build/`
 
-- **block**: Prevent operation if validation fails
-- **warn**: Continue but report issues
-- **ignore**: Continue silently
+## Biome Version Handling
+
+Automatic Biome version detection ensures compatibility:
+
+```typescript
+// Automatic version detection
+const biomeVersion = await detectBiomeVersion(); // Returns '1.x' or '2.x'
+
+// Adapter pattern for version differences
+const adapter = biomeVersion === '1.x' 
+  ? new BiomeV1Adapter()  // Uses --apply
+  : new BiomeV2Adapter(); // Uses --write
+```
 
 ## Error Handling
 
-### Timeout Handling
-```typescript
-const result = await Promise.race([
-  runValidator(file),
-  timeout(config.timeout)
-]);
-```
+Robust error handling ensures reliability:
+- Validation failures don't block file operations
+- Partial results are reported if one validator fails
+- All errors are logged but operations continue
+- Claude is always notified of the outcome
 
-### Graceful Degradation
-- Continue with remaining validators if one fails
-- Report partial results
-- Log errors for debugging
-- Never block Claude's operations
+## Performance
 
-## Performance Optimizations
-
-### Debouncing
-Prevent multiple validations for rapid changes:
-```typescript
-const debouncedValidate = debounce(
-  validate,
-  config.performance.debounceDelay
-);
-```
-
-### Caching
-Cache validation results for unchanged files:
-```typescript
-if (cache.has(fileHash) && !cache.isExpired(fileHash)) {
-  return cache.get(fileHash);
-}
-```
-
-### Parallel Processing
-Run independent operations concurrently:
-```typescript
-const results = await Promise.allSettled([
-  validateWithBiome(file),
-  validateWithTypeScript(file)
-]);
-```
-
-## Integration Points
-
-### Claude Code API
-- Register hooks on initialization
-- Listen for file operation events
-- Send notifications back to Claude
-
-### File System
-- Read file content for validation
-- Write fixed content back
-- Watch for external changes
-
-### Validators
-- Pass file content to validators
-- Receive structured results
-- Handle validator-specific configs
-
-## Testing Hooks
-
-### Unit Tests
-```typescript
-describe('PostWriteHook', () => {
-  it('should validate file after write', async () => {
-    const file = mockFile('test.ts');
-    const result = await postWriteHook(file);
-    expect(result.validated).toBe(true);
-  });
-});
-```
-
-### Integration Tests
-- Test with real Claude Code API
-- Verify file system operations
-- Check notification delivery
-- Measure performance impact
-
-## Best Practices
-
-1. **Non-Blocking**: Never block Claude's operations
-2. **Transparent**: Clear notifications about changes
-3. **Efficient**: Minimize performance impact
-4. **Reliable**: Handle errors gracefully
-5. **Configurable**: Allow users to customize behavior
+Performance optimizations are built-in:
+- Validators run in parallel
+- Biome version is cached per session
+- Results are debounced for rapid changes
+- Automatic optimization without configuration

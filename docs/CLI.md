@@ -2,24 +2,30 @@
 
 ## Overview
 
-The Claude Hooks Format & Lint Validator can be used via `npx` without installation. It operates in two modes:
+Claude JS Quality Hooks can be used via `npx` without installation. It operates in two modes:
 - **CLI Mode**: Direct command execution for setup and configuration
 - **Hook Mode**: Automatic detection when receiving JSON input from Claude Code
 
 ## Installation
 
-No installation required! Use directly with npx:
+### Recommended: Use with NPX (No Installation)
 
 ```bash
 npx claude-jsqualityhooks [command]
 ```
 
-For better performance, you can install globally:
+This is the **recommended approach** - no installation needed, always uses latest version.
+
+### Not Recommended: Global Installation
+
+Global installation is discouraged. Use `npx` instead:
 
 ```bash
-npm install -g claude-jsqualityhooks
-claude-jsqualityhooks [command]
+# Not recommended - use npx instead
+# npm install -g claude-jsqualityhooks
 ```
+
+See [Installation Guide](./INSTALLATION.md) for detailed comparison of methods.
 
 ## Commands
 
@@ -32,11 +38,13 @@ npx claude-jsqualityhooks init
 ```
 
 This command will:
-1. Create `claude-hooks.config.yaml` if it doesn't exist
+1. Create `claude-jsqualityhooks.config.yaml` in the current directory (REQUIRED)
 2. Detect installed Biome version (1.x or 2.x)
 3. Verify TypeScript is available
 4. Test that validators work correctly
 5. Report configuration status
+
+**Note:** The configuration file MUST exist in your project root for the tool to work.
 
 **Options:**
 - `--force` - Overwrite existing configuration
@@ -45,7 +53,7 @@ This command will:
 
 **Example output:**
 ```
-✓ Configuration file created: claude-hooks.config.yaml
+✓ Configuration file created: claude-jsqualityhooks.config.yaml
 ✓ Biome detected: v2.3.1
 ✓ TypeScript detected: v5.4.0
 ✓ Validators tested successfully
@@ -62,10 +70,10 @@ npx claude-jsqualityhooks version
 
 **Example output:**
 ```
-Claude Hooks Format & Lint: v1.0.0
-Biome: v2.3.1 (auto-detected)
-TypeScript: v5.4.0
-Node: v20.11.0
+Claude JS Quality Hooks: [current version]
+Biome: [detected version] (auto-detected)
+TypeScript: [detected version]
+Node: [current version]
 ```
 
 ### `install` - Register Hooks with Claude
@@ -107,6 +115,26 @@ npx claude-jsqualityhooks uninstall
 
 When the tool detects JSON input via stdin, it automatically switches to hook mode. This happens when Claude Code executes it as a hook.
 
+**⚠️ Important:** If `claude-jsqualityhooks.config.yaml` doesn't exist in the current directory, the hook will exit with a warning:
+
+```
+⚠️  Configuration file not found: claude-jsqualityhooks.config.yaml
+
+To get started:
+1. Run: npx claude-jsqualityhooks init
+   This will create claude-jsqualityhooks.config.yaml in your project root
+
+2. Or manually create claude-jsqualityhooks.config.yaml with minimal config:
+   ---
+   enabled: true
+   validators:
+     biome:
+       enabled: true
+
+Without this configuration file, the hook will not run.
+For details, see: https://github.com/dkmaker/claude-jsqualityhooks#configuration
+```
+
 ### How It Works
 
 1. Claude writes/edits a file
@@ -124,7 +152,15 @@ echo '{"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_p
 
 ## Configuration
 
-The tool uses `claude-hooks.config.yaml` for configuration. Key settings:
+The tool **requires** `claude-jsqualityhooks.config.yaml` in the current directory. Without this file, the tool will not run.
+
+### Configuration File Location
+
+- **Required location:** `./claude-jsqualityhooks.config.yaml` (current directory only)
+- **No fallbacks:** No default configs or alternative paths
+- **Create with:** `npx claude-jsqualityhooks init`
+
+### Key Settings:
 
 ```yaml
 # Enable/disable validation
@@ -170,7 +206,13 @@ npx claude-jsqualityhooks install
 
 Install Biome in your project:
 ```bash
+# Using npm (most common)
 npm install --save-dev @biomejs/biome
+
+# Or using yarn
+yarn add -D @biomejs/biome
+
+# Then initialize
 npx claude-jsqualityhooks init
 ```
 
@@ -183,27 +225,14 @@ chmod +x $(which npx)
 
 ## Advanced Usage
 
-### Custom Configuration Path
-
-Use environment variable:
-```bash
-CLAUDE_HOOKS_CONFIG=./custom-config.yaml npx claude-jsqualityhooks
-```
-
 ### Debug Mode
 
 Enable verbose output:
 ```bash
-DEBUG=claude-hooks:* npx claude-jsqualityhooks init
+DEBUG=claude-jsqualityhooks:* npx claude-jsqualityhooks init
 ```
 
-### CI/CD Integration
-
-Check code without Claude:
-```bash
-# Validate files directly
-npx claude-jsqualityhooks check src/**/*.ts
-```
+Note: Advanced features like custom configuration paths and CI/CD integration may be added in future versions.
 
 ## Examples
 
@@ -214,7 +243,7 @@ npx claude-jsqualityhooks check src/**/*.ts
 cd my-project
 npx claude-jsqualityhooks init
 
-# 2. Install Biome if needed
+# 2. Install Biome if needed (using npm)
 npm install --save-dev @biomejs/biome
 
 # 3. Register with Claude
@@ -229,7 +258,7 @@ Add to your project's package.json:
 ```json
 {
   "scripts": {
-    "claude-hooks": "npx claude-jsqualityhooks"
+    "claude-jsqualityhooks": "npx claude-jsqualityhooks"
   }
 }
 ```
@@ -242,7 +271,7 @@ Then in Claude settings:
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "command",
-        "command": "cd $CLAUDE_PROJECT_DIR && npm run claude-hooks"
+        "command": "cd $CLAUDE_PROJECT_DIR && npm run claude-jsqualityhooks"
       }]
     }]
   }
@@ -260,7 +289,7 @@ npx claude-jsqualityhooks uninstall
 
 2. Delete configuration:
 ```bash
-rm claude-hooks.config.yaml
+rm claude-jsqualityhooks.config.yaml
 ```
 
 3. Clear npx cache (optional):

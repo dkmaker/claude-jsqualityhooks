@@ -1,27 +1,49 @@
 # TypeScript Interfaces
 
-## Core Interfaces
+> API interfaces for **Claude JS Quality Hooks** (`claude-jsqualityhooks`)
 
-### File Information
+## Core Configuration
+
+### Main Config Interface
+
+The main configuration interface:
 
 ```typescript
-interface FileInfo {
-  path: string;              // Absolute file path
-  relativePath: string;      // Relative to project root
-  content: string;          // File content
-  hash?: string;            // Content hash for caching
-  encoding?: string;        // File encoding (default: utf-8)
-  stats?: FileStats;        // File metadata
-}
-
-interface FileStats {
-  size: number;             // File size in bytes
-  modified: Date;           // Last modified time
-  created: Date;            // Creation time
+interface Config {
+  // Global settings (2)
+  enabled: boolean;
+  autoFix: boolean;
+  
+  // Validators (6 total fields)
+  validators: {
+    biome?: {
+      enabled: boolean;
+      version: 'auto' | '1.x' | '2.x';
+      configPath?: string;
+    };
+    typescript?: {
+      enabled: boolean;
+      configPath?: string;
+    };
+  };
+  
+  // File patterns (2)
+  include?: string[];
+  exclude?: string[];
 }
 ```
 
-### Validation Results
+## File Information
+
+```typescript
+interface FileInfo {
+  path: string;          // Absolute file path
+  relativePath: string;  // Relative to project root
+  content: string;       // File content
+}
+```
+
+## Validation Results
 
 ```typescript
 interface ValidationResponse {
@@ -29,384 +51,196 @@ interface ValidationResponse {
   filesModified: boolean;
   summary: string;
   issues: ValidationIssue[];
-  fixes: FixDetail[];
   statistics: ValidationStatistics;
-  context?: CodeContext[];
 }
 
 interface ValidationIssue {
   file: string;
   line: number;
   column: number;
-  endLine?: number;
-  endColumn?: number;
-  severity: Severity;
-  type: IssueType;
+  severity: 'error' | 'warning' | 'info';
   message: string;
-  rule?: string;
-  autoFixed: boolean;
-  fixable?: boolean;
-  suggestion?: string;
+  fixed: boolean;
+  fixable: boolean;
 }
 
-type Severity = 'error' | 'warning' | 'info';
-type IssueType = 'format' | 'lint' | 'type' | 'syntax' | 'import' | 'complexity';
-```
-
-### Fix Details
-
-```typescript
-interface FixDetail {
-  file: string;
-  fixCount: number;
-  changes: Change[];
-  appliedAt?: Date;
-}
-
-interface Change {
-  line: number;
-  column?: number;
-  before: string;
-  after: string;
-  description?: string;
-}
-
-interface FixResult {
-  success: boolean;
-  modified: boolean;
-  fixes: AppliedFix[];
-  content: string;
-  error?: Error;
-}
-
-interface AppliedFix {
-  type: FixCategory;
-  line: number;
-  description: string;
-  safe: boolean;
-}
-
-enum FixCategory {
-  FORMAT = 'format',
-  IMPORT = 'import',
-  LINT_SAFE = 'lint_safe',
-  LINT_UNSAFE = 'lint_unsafe',
-  TYPE = 'type'
-}
-```
-
-### Statistics
-
-```typescript
 interface ValidationStatistics {
   totalIssues: number;
   fixedIssues: number;
   remainingIssues: number;
-  filesChecked: number;
-  filesModified: number;
-  duration?: number;        // Validation time in ms
-  
-  byType: Record<IssueType, number>;
-  bySeverity: Record<Severity, number>;
-  byFile?: Record<string, number>;
 }
 ```
 
-### Configuration
+## Validator Interfaces
 
-```typescript
-interface Config {
-  enabled: boolean;
-  autoFix: boolean;
-  blockOnErrors: boolean;
-  validators: ValidatorConfig;
-  include: string[];
-  exclude: string[];
-  hooks: HookConfig;
-  notifications: NotificationConfig;
-  performance: PerformanceConfig;
-  severity: SeverityConfig;
-  fixPriority: Record<string, number>;
-}
-
-interface ValidatorConfig {
-  biome?: BiomeConfig;
-  typescript?: TypeScriptConfig;
-}
-
-interface BiomeConfig {
-  enabled: boolean;
-  configPath: string;
-  autoFix: boolean;
-  version: 'auto' | '1.x' | '2.x';
-  outputFormat: 'json' | 'text';
-  rules: BiomeRules;
-  fixUnsafe: boolean;
-  v1Settings?: BiomeV1Settings;
-  v2Settings?: BiomeV2Settings;
-}
-
-interface TypeScriptConfig {
-  enabled: boolean;
-  configPath: string;
-  strict: boolean;
-  checkJs: boolean;
-  incremental: boolean;
-  noEmitOnError: boolean;
-  diagnosticOptions?: DiagnosticOptions;
-}
-```
-
-### Hooks
-
-```typescript
-interface Hook {
-  name: string;
-  enabled: boolean;
-  timeout: number;
-  failureStrategy: FailureStrategy;
-  execute(file: FileInfo): Promise<HookResult>;
-}
-
-type FailureStrategy = 'block' | 'warn' | 'ignore';
-
-interface HookResult {
-  success: boolean;
-  modified: boolean;
-  validation?: ValidationResponse;
-  error?: Error;
-  duration: number;
-}
-
-interface HookConfig {
-  postWrite?: PostWriteConfig;
-  preRead?: PreReadConfig;
-  batchOperation?: BatchConfig;
-}
-
-interface PostWriteConfig {
-  enabled: boolean;
-  timeout: number;
-  failureStrategy: FailureStrategy;
-  autoFix: boolean;
-  reportToUser: boolean;
-  runValidators: string[];
-}
-```
-
-### Validators
+### Base Validator
 
 ```typescript
 interface Validator {
   name: string;
-  enabled: boolean;
-  
-  initialize(config: any): Promise<void>;
   validate(file: FileInfo): Promise<ValidationResult>;
-  fix?(file: FileInfo, issues: ValidationIssue[]): Promise<FixResult>;
-  dispose?(): Promise<void>;
+  fix?(file: FileInfo): Promise<string>;
 }
 
 interface ValidationResult {
   validator: string;
   status: 'success' | 'warning' | 'error';
   issues: ValidationIssue[];
-  statistics?: Partial<ValidationStatistics>;
-  raw?: any;               // Raw output from tool
 }
 ```
 
-### Formatters
+### Biome Validator Specific
 
 ```typescript
-interface Formatter {
-  format(
-    results: ValidationResult[],
-    options: FormatterOptions
-  ): Promise<ValidationResponse>;
+interface BiomeValidator extends Validator {
+  name: 'biome';
+  version: '1.x' | '2.x';
+  detectVersion(): Promise<'1.x' | '2.x'>;
 }
 
-interface FormatterOptions {
-  format: 'structured' | 'plain' | 'verbose';
-  includeContext: boolean;
-  maxContextLines: number;
-  showDiffs: boolean;
-  maxDiffLines: number;
-  removeColors: boolean;
-  removeDecorations: boolean;
-  useRelativePaths: boolean;
-  simplifyMessages: boolean;
-  groupByFile: boolean;
-  sortBy: 'severity' | 'file' | 'type';
-  collapseFixed: boolean;
-  highlightUnfixed: boolean;
+// Biome version adapters
+interface BiomeAdapter {
+  buildCommand(file: string, autoFix: boolean): string[];
+  parseOutput(output: string): ValidationIssue[];
+}
+
+class BiomeV1Adapter implements BiomeAdapter {
+  buildCommand(file: string, autoFix: boolean) {
+    // Uses --apply for fixes
+  }
+}
+
+class BiomeV2Adapter implements BiomeAdapter {
+  buildCommand(file: string, autoFix: boolean) {
+    // Uses --write for fixes
+  }
 }
 ```
 
-### Code Context
+### TypeScript Validator Specific
 
 ```typescript
-interface CodeContext {
-  issue: ValidationIssue;
-  context: ContextLine[];
-}
-
-interface ContextLine {
-  lineNumber: number;
-  content: string;
-  isErrorLine: boolean;
-  highlight?: {
-    start: number;
-    end: number;
-  };
+interface TypeScriptValidator extends Validator {
+  name: 'typescript';
+  program: ts.Program;
+  getDiagnostics(file: string): ts.Diagnostic[];
 }
 ```
 
-### Biome Specific
+## Hook System
 
 ```typescript
-interface BiomeOutput {
-  diagnostics: BiomeDiagnostic[];
-  summary: {
-    errors: number;
-    warnings: number;
-    information: number;
-  };
+interface Hook {
+  name: 'postWrite';
+  execute(file: FileInfo): Promise<HookResult>;
 }
 
-interface BiomeDiagnostic {
-  file_path: string;
-  severity: 'error' | 'warning' | 'information';
-  category: string;
-  message: {
-    content: string;
-    elements: MessageElement[];
-  };
-  location: {
-    path: string;
-    span: {
-      start: Position;
-      end: Position;
-    };
-  };
-  tags?: string[];
+interface HookResult {
+  success: boolean;
+  modified: boolean;
+  validation?: ValidationResponse;
+}
+```
+
+## AI Output Formatter
+
+```typescript
+interface AIFormatter {
+  format(results: ValidationResult[]): AIFormattedOutput;
 }
 
-interface Position {
+interface AIFormattedOutput {
+  status: 'success' | 'warning' | 'error';
+  filesModified: boolean;
+  summary: string;
+  issues: FormattedIssue[];
+  statistics: Statistics;
+}
+
+interface FormattedIssue {
+  file: string;        // Always relative path
   line: number;
   column: number;
+  severity: 'error' | 'warning' | 'info';
+  message: string;     // Simplified for AI
+  fixed: boolean;
 }
 ```
 
-### TypeScript Specific
+## Configuration Loader
 
 ```typescript
-interface TypeScriptDiagnostic {
-  file?: string;
-  start?: number;
-  length?: number;
-  messageText: string | DiagnosticMessageChain;
-  category: DiagnosticCategory;
-  code: number;
+interface ConfigLoader {
+  load(): Promise<Config>;
+  validate(config: unknown): config is Config;
 }
 
-enum DiagnosticCategory {
-  Warning = 0,
-  Error = 1,
-  Suggestion = 2,
-  Message = 3
-}
-
-interface DiagnosticMessageChain {
-  messageText: string;
-  category: DiagnosticCategory;
-  code: number;
-  next?: DiagnosticMessageChain[];
-}
-```
-
-### Cache
-
-```typescript
-interface CacheEntry<T> {
-  value: T;
-  hash: string;
-  timestamp: number;
-  ttl: number;
-}
-
-interface Cache<T> {
-  get(key: string): T | undefined;
-  set(key: string, value: T, ttl?: number): void;
-  has(key: string): boolean;
-  delete(key: string): boolean;
-  clear(): void;
-  isExpired(key: string): boolean;
-}
-```
-
-### Events
-
-```typescript
-interface HookEvent {
-  type: 'pre-write' | 'post-write' | 'pre-read' | 'batch';
-  file?: FileInfo;
-  files?: FileInfo[];
-  timestamp: Date;
-}
-
-interface ValidationEvent {
-  type: 'validation-start' | 'validation-complete' | 'validation-error';
-  validator: string;
-  file: string;
-  result?: ValidationResult;
-  error?: Error;
-  duration?: number;
-}
-
-interface FixEvent {
-  type: 'fix-start' | 'fix-complete' | 'fix-error';
-  file: string;
-  fixes?: AppliedFix[];
-  error?: Error;
-}
-```
-
-### Errors
-
-```typescript
-class ValidationError extends Error {
-  constructor(
-    message: string,
-    public validator: string,
-    public file: string,
-    public cause?: Error
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-class FixError extends Error {
-  constructor(
-    message: string,
-    public file: string,
-    public fixes: AppliedFix[],
-    public cause?: Error
-  ) {
-    super(message);
-    this.name = 'FixError';
-  }
-}
-
-class ConfigError extends Error {
-  constructor(
-    message: string,
-    public configPath: string,
-    public cause?: Error
-  ) {
-    super(message);
-    this.name = 'ConfigError';
+class YamlConfigLoader implements ConfigLoader {
+  private readonly CONFIG_FILE = 'claude-jsqualityhooks.config.yaml';
+  
+  async load(): Promise<Config> {
+    // Load and validate configuration
   }
 }
 ```
+
+## Smart Defaults (Internal)
+
+```typescript
+// Internal constants - not exposed
+const SMART_DEFAULTS = {
+  timeout: 5000,
+  failureStrategy: 'warn',
+  outputFormat: 'ai-optimized',
+  fixOrder: ['format', 'imports', 'lint'],
+  performance: {
+    parallel: true,
+    cache: true
+  }
+};
+```
+
+
+## Usage Examples
+
+### Loading Configuration
+
+```typescript
+const loader = new YamlConfigLoader();
+const config = await loader.load();
+
+// Configuration example
+console.log(config.enabled);          // true
+console.log(config.autoFix);          // true
+console.log(config.validators.biome.version); // 'auto'
+```
+
+### Running Validation
+
+```typescript
+const validator = new BiomeValidator(config.validators.biome);
+const result = await validator.validate(fileInfo);
+
+// Result uses fixed format
+console.log(result.status);
+console.log(result.issues);
+```
+
+### Formatting for AI
+
+```typescript
+const formatter = new AIFormatter();
+const output = formatter.format(validationResults);
+
+// Output is always AI-optimized
+console.log(output.summary);
+console.log(output.statistics);
+```
+
+## Implementation Notes
+
+1. Keep interfaces minimal
+2. Use smart defaults internally
+3. Focus on Biome version detection
+4. Fixed AI output format
+5. Type safety with proper validation

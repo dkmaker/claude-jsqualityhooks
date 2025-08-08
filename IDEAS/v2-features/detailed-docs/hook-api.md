@@ -1,10 +1,16 @@
-# Hook API Reference
+# Claude JS Quality Hooks - Hook API Reference
+
+Hook system API for the `claude-jsqualityhooks` package.
 
 ## Hook Manager
+
+The main entry point for managing hooks in Claude JS Quality Hooks.
 
 ### Class: HookManager
 
 ```typescript
+import { HookManager, Config } from 'claude-jsqualityhooks';
+
 class HookManager {
   constructor(config: Config);
   
@@ -28,7 +34,7 @@ class HookManager {
 ### Creating a Custom Hook
 
 ```typescript
-import { Hook, FileInfo, HookResult } from '../types';
+import { Hook, FileInfo, HookResult } from 'claude-jsqualityhooks';
 
 export class CustomHook implements Hook {
   name = 'custom-hook';

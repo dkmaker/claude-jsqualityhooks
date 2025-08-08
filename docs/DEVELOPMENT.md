@@ -1,5 +1,10 @@
 # Development Guide
 
+**Project**: Claude JS Quality Hooks  
+**Package**: `claude-jsqualityhooks`  
+**Repository**: https://github.com/dkmaker/claude-jsqualityhooks  
+**Developer**: DKMaker
+
 ## Implementation Phases
 
 The project is divided into 5 sequential implementation phases, each building on the previous one.
@@ -16,23 +21,78 @@ The project is divided into 5 sequential implementation phases, each building on
 
 ### Prerequisites
 
-1. Set up development environment:
+1. Enable pnpm via Corepack (Node.js 16.9+):
    ```bash
-   git clone <repository>
-   cd claude-hooks-format-lint
-   npm install
+   # Enable corepack (included with Node.js)
+   corepack enable
+   
+   # Prepare pnpm (uses version from package.json)
+   corepack prepare pnpm@latest --activate
    ```
 
-2. Install validation tools:
+2. Set up development environment:
    ```bash
-   npm install --save-dev @biomejs/biome@^2
-   npx @biomejs/biome init
+   git clone https://github.com/dkmaker/claude-jsqualityhooks
+   cd claude-jsqualityhooks
+   pnpm install
+   ```
+
+2. Install and configure Biome:
+   ```bash
+   pnpm add -D @biomejs/biome
+   pnpm exec biome init
+   ```
+   
+   Configure `biome.json`:
+   ```json
+   {
+     "$schema": "https://biomejs.dev/schemas/schema.json",
+     "formatter": {
+       "enabled": true,
+       "indentStyle": "space",
+       "indentWidth": 2,
+       "lineWidth": 100
+     },
+     "linter": {
+       "enabled": true,
+       "rules": {
+         "recommended": true
+       }
+     },
+     "organizeImports": {
+       "enabled": true
+     },
+     "files": {
+       "ignore": ["node_modules", "dist", "coverage"]
+     }
+   }
    ```
 
 3. Configure TypeScript:
    ```bash
-   npx tsc --init
-   # Configure tsconfig.json for strict mode
+   pnpm exec tsc --init
+   ```
+   
+   Update `tsconfig.json` for strict mode and ESM:
+   ```json
+   {
+     "compilerOptions": {
+       "target": "ES2022",
+       "module": "ESNext",
+       "moduleResolution": "bundler",
+       "strict": true,
+       "esModuleInterop": true,
+       "skipLibCheck": true,
+       "forceConsistentCasingInFileNames": true,
+       "declaration": true,
+       "declarationMap": true,
+       "sourceMap": true,
+       "outDir": "./dist",
+       "rootDir": "./src"
+     },
+     "include": ["src/**/*"],
+     "exclude": ["node_modules", "dist", "**/*.test.ts"]
+   }
    ```
 
 ### Development Process
@@ -57,29 +117,29 @@ The project is divided into 5 sequential implementation phases, each building on
 
 ```bash
 # Development build
-npm run build:dev
+pnpm build:dev
 
 # Production build
-npm run build
+pnpm build
 
 # Watch mode
-npm run dev
+pnpm dev
 ```
 
 ### Testing Strategy
 
 ```bash
 # Unit tests
-npm run test:unit
+pnpm test:unit
 
 # Integration tests
-npm run test:integration
+pnpm test:integration
 
 # Full test suite
-npm test
+pnpm test
 
 # Coverage report
-npm run test:coverage
+pnpm test:coverage
 ```
 
 ## Phase Dependencies
@@ -132,11 +192,11 @@ graph TD
 - Simpler than JSON for complex configs
 - Standard in DevOps tooling
 
-### Why Support Both Biome Versions?
-- v1.x is stable and widely adopted
-- v2.x offers performance improvements
+### Why Support Multiple Biome Versions?
+- Multiple versions are actively used
 - Auto-detection prevents breaking changes
 - Smooth migration path for users
+- Better compatibility across projects
 
 ### Why Post-Write Hooks Only?
 - Complete file context for validation
@@ -187,23 +247,26 @@ const results = await Promise.allSettled(
 
 2. **Test Individual Validators**
    ```bash
-   npm run test:validator -- biome
+   pnpm test:validator biome
    ```
 
 3. **Check Version Detection**
    ```bash
-   npm run debug:version
+   pnpm debug:version
    ```
 
 4. **Inspect AI Output**
    ```bash
-   npm run debug:format -- sample.json
+   pnpm debug:format sample.json
    ```
 
 ## Contributing Guidelines
 
+**Repository**: https://github.com/dkmaker/claude-jsqualityhooks  
+**Developer**: DKMaker
+
 1. **Code Style**
-   - Run Biome before committing
+   - Run formatting and linting before committing
    - Follow existing patterns
    - Add JSDoc comments
 
@@ -223,11 +286,52 @@ const results = await Promise.allSettled(
    - Update documentation
    - Pass CI checks
 
+## Development Dependencies
+
+### Package Manager Setup
+
+```json
+{
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}
+```
+
+Enable pnpm with Corepack:
+```bash
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+### Setting Up Development Environment
+
+```bash
+# 1. Ensure Node.js 18+ is installed
+node --version  # Should be >= 18.0.0
+
+# 2. Enable Corepack for pnpm
+corepack enable
+corepack prepare pnpm@latest --activate
+
+# 3. Clone and install
+git clone https://github.com/dkmaker/claude-jsqualityhooks
+cd claude-jsqualityhooks
+pnpm install
+
+# 4. Verify setup
+pnpm --version  # Should be 10.14.0
+pnpm typecheck  # Run TypeScript checks
+pnpm test       # Run tests
+```
+
 ## Release Process
 
 1. Update version in `package.json`
 2. Update CHANGELOG.md
-3. Run full test suite
-4. Build production bundle
+3. Run full test suite with `pnpm test`
+4. Build production bundle with `pnpm build`
 5. Tag release in git
-6. Publish to npm (if applicable)
+6. Publish to npm with `pnpm publish`
