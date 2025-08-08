@@ -70,7 +70,7 @@ describe('TypeScriptValidator', () => {
       vi.doMock('typescript', () => mockTS);
 
       const result = await validator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBeOneOf(['success', 'warning', 'error']);
     });
@@ -82,7 +82,7 @@ describe('TypeScriptValidator', () => {
       });
 
       const result = await validator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBe('success');
       expect(result.issues).toEqual([]);
@@ -93,14 +93,14 @@ describe('TypeScriptValidator', () => {
     beforeEach(() => {
       // Mock successful TypeScript setup
       vi.doMock('typescript', () => mockTS);
-      
+
       mockTS.createProgram.mockReturnValue({
         getSyntacticDiagnostics: vi.fn().mockReturnValue([]),
         getSemanticDiagnostics: vi.fn().mockReturnValue([]),
       });
 
       mockTS.createCompilerHost.mockReturnValue({});
-      
+
       mockTS.parseJsonConfigFileContent.mockReturnValue({
         options: { noEmit: true, strict: true },
         errors: [],
@@ -114,7 +114,7 @@ describe('TypeScriptValidator', () => {
 
     it('should validate TypeScript file successfully with no errors', async () => {
       const result = await validator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBe('success');
       expect(result.issues).toEqual([]);
@@ -122,7 +122,7 @@ describe('TypeScriptValidator', () => {
 
     it('should detect and report TypeScript errors', async () => {
       const mockDiagnostic = {
-        file: { 
+        file: {
           fileName: mockFile.path,
           getLineAndCharacterOfPosition: vi.fn().mockReturnValue({ line: 0, character: 6 }),
         },
@@ -140,7 +140,7 @@ describe('TypeScriptValidator', () => {
       mockTS.createProgram.mockReturnValue(mockProgram);
 
       const result = await validator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBe('error');
       expect(result.issues).toHaveLength(1);
@@ -156,9 +156,9 @@ describe('TypeScriptValidator', () => {
       };
 
       const customValidator = new TypeScriptValidator(customConfig, '/test');
-      
+
       const result = await customValidator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       // Result depends on whether custom config exists, but should not throw
       expect(['success', 'warning', 'error']).toContain(result.status);
@@ -175,7 +175,7 @@ describe('TypeScriptValidator', () => {
       );
 
       const result = await validator.validateWithTimeout(mockFile, 100); // 100ms timeout
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBe('warning');
       expect(result.issues).toEqual([]);
@@ -183,7 +183,7 @@ describe('TypeScriptValidator', () => {
 
     it('should return result within timeout', async () => {
       const result = await validator.validateWithTimeout(mockFile, 5000); // 5s timeout
-      
+
       expect(result.validator).toBe('typescript');
       expect(['success', 'warning', 'error']).toContain(result.status);
     });
@@ -214,7 +214,7 @@ describe('TypeScriptValidator', () => {
       });
 
       const result = await validator.validate(mockFile);
-      
+
       expect(result.validator).toBe('typescript');
       expect(result.status).toBe('error');
       expect(result.issues).toEqual([]);
@@ -234,7 +234,7 @@ describe('TypeScriptValidator', () => {
       mockTS.createProgram.mockReturnValue(mockProgram);
 
       const result = await validator.validate(mockFile);
-      
+
       // Should handle gracefully and not throw
       expect(result.validator).toBe('typescript');
       expect(['success', 'warning', 'error']).toContain(result.status);

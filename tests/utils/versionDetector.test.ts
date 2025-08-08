@@ -34,11 +34,13 @@ describe('versionDetector', () => {
 
   describe('detectBiomeVersion', () => {
     it('should detect version from package.json (dependencies)', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '^1.8.3'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '^1.8.3',
+          },
+        })
+      );
 
       const result = await detectBiomeVersion();
 
@@ -47,16 +49,18 @@ describe('versionDetector', () => {
         major: 1,
         minor: 8,
         patch: 3,
-        source: 'package.json'
+        source: 'package.json',
       });
     });
 
     it('should detect version from package.json (devDependencies)', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        devDependencies: {
-          '@biomejs/biome': '~2.1.0'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          devDependencies: {
+            '@biomejs/biome': '~2.1.0',
+          },
+        })
+      );
 
       const result = await detectBiomeVersion();
 
@@ -65,19 +69,21 @@ describe('versionDetector', () => {
         major: 2,
         minor: 1,
         patch: 0,
-        source: 'package.json'
+        source: 'package.json',
       });
     });
 
     it('should prefer dependencies over devDependencies', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '2.0.0'
-        },
-        devDependencies: {
-          '@biomejs/biome': '1.8.3'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.0.0',
+          },
+          devDependencies: {
+            '@biomejs/biome': '1.8.3',
+          },
+        })
+      );
 
       const result = await detectBiomeVersion();
 
@@ -88,7 +94,7 @@ describe('versionDetector', () => {
     it('should fall back to CLI detection when package.json fails', async () => {
       mockReadFile.mockRejectedValue(new Error('File not found'));
       mockExeca.mockResolvedValue({
-        stdout: 'biome 1.9.0'
+        stdout: 'biome 1.9.0',
       });
 
       const result = await detectBiomeVersion();
@@ -98,17 +104,15 @@ describe('versionDetector', () => {
         major: 1,
         minor: 9,
         patch: 0,
-        source: 'cli'
+        source: 'cli',
       });
     });
 
     it('should try multiple CLI commands', async () => {
       mockReadFile.mockRejectedValue(new Error('File not found'));
-      mockExeca
-        .mockRejectedValueOnce(new Error('npx command failed'))
-        .mockResolvedValue({
-          stdout: '2.1.3'
-        });
+      mockExeca.mockRejectedValueOnce(new Error('npx command failed')).mockResolvedValue({
+        stdout: '2.1.3',
+      });
 
       const result = await detectBiomeVersion();
 
@@ -128,14 +132,14 @@ describe('versionDetector', () => {
         major: 2,
         minor: 0,
         patch: 0,
-        source: 'default'
+        source: 'default',
       });
     });
 
     it('should use config override when version is specified', async () => {
       const config: BiomeConfig = {
         enabled: true,
-        version: '1.x'
+        version: '1.x',
       };
 
       const result = await detectBiomeVersion(config);
@@ -145,7 +149,7 @@ describe('versionDetector', () => {
         major: 1,
         minor: 0,
         patch: 0,
-        source: 'config'
+        source: 'config',
       });
 
       // Should not attempt file reads or CLI calls
@@ -156,14 +160,16 @@ describe('versionDetector', () => {
     it('should perform detection when config version is auto', async () => {
       const config: BiomeConfig = {
         enabled: true,
-        version: 'auto'
+        version: 'auto',
       };
 
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '2.1.0'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.1.0',
+          },
+        })
+      );
 
       const result = await detectBiomeVersion(config);
 
@@ -172,11 +178,13 @@ describe('versionDetector', () => {
     });
 
     it('should cache results for subsequent calls', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '1.8.3'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '1.8.3',
+          },
+        })
+      );
 
       // First call
       const result1 = await detectBiomeVersion();
@@ -191,13 +199,15 @@ describe('versionDetector', () => {
     });
 
     it('should handle malformed version strings', async () => {
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': 'invalid-version'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': 'invalid-version',
+          },
+        })
+      );
       mockExeca.mockResolvedValue({
-        stdout: 'biome 2.1.0'
+        stdout: 'biome 2.1.0',
       });
 
       const result = await detectBiomeVersion();
@@ -211,11 +221,13 @@ describe('versionDetector', () => {
       process.env.DEBUG = 'true';
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '2.0.0'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.0.0',
+          },
+        })
+      );
 
       await detectBiomeVersion();
 
@@ -264,22 +276,26 @@ describe('versionDetector', () => {
   describe('clearBiomeVersionCache', () => {
     it('should clear cached version', async () => {
       // First detection
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '1.8.3'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '1.8.3',
+          },
+        })
+      );
       await detectBiomeVersion();
 
       // Clear cache
       clearBiomeVersionCache();
 
       // Mock different version
-      mockReadFile.mockResolvedValue(JSON.stringify({
-        dependencies: {
-          '@biomejs/biome': '2.1.0'
-        }
-      }));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({
+          dependencies: {
+            '@biomejs/biome': '2.1.0',
+          },
+        })
+      );
 
       // Should detect new version after cache clear
       const result = await detectBiomeVersion();
@@ -291,22 +307,28 @@ describe('versionDetector', () => {
   describe('detectAllVersions', () => {
     it('should detect all versions successfully', async () => {
       mockReadFile
-        .mockResolvedValueOnce(JSON.stringify({
-          dependencies: {
-            '@biomejs/biome': '2.1.0',
-            'typescript': '5.0.0'
-          }
-        }))
-        .mockResolvedValueOnce(JSON.stringify({
-          dependencies: {
-            '@biomejs/biome': '2.1.0',
-            'typescript': '5.0.0'
-          }
-        }))
-        .mockResolvedValueOnce(JSON.stringify({
-          name: 'claude-jsqualityhooks',
-          version: '1.0.0'
-        }));
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            dependencies: {
+              '@biomejs/biome': '2.1.0',
+              typescript: '5.0.0',
+            },
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            dependencies: {
+              '@biomejs/biome': '2.1.0',
+              typescript: '5.0.0',
+            },
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            name: 'claude-jsqualityhooks',
+            version: '1.0.0',
+          })
+        );
 
       const result = await detectAllVersions();
 
@@ -337,7 +359,7 @@ describe('versionDetector', () => {
     it('should pass config to biome detection', async () => {
       const config: BiomeConfig = {
         enabled: true,
-        version: '1.x'
+        version: '1.x',
       };
 
       const result = await detectAllVersions(config);
@@ -360,11 +382,13 @@ describe('versionDetector', () => {
       ];
 
       for (const { input, expected } of testCases) {
-        mockReadFile.mockResolvedValue(JSON.stringify({
-          dependencies: {
-            '@biomejs/biome': input
-          }
-        }));
+        mockReadFile.mockResolvedValue(
+          JSON.stringify({
+            dependencies: {
+              '@biomejs/biome': input,
+            },
+          })
+        );
 
         clearBiomeVersionCache();
         const result = await detectBiomeVersion();

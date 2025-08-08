@@ -9,7 +9,10 @@ import { createHash } from 'node:crypto';
 import type { Config, BiomeConfig, TypeScriptConfig } from '../types/config.js';
 import type { FileInfo } from '../types/hooks.js';
 import { BiomeValidator, type BiomeValidationResult } from './biome/BiomeValidator.js';
-import { TypeScriptValidator, type ValidationResult as TSValidationResult } from './typescript/index.js';
+import {
+  TypeScriptValidator,
+  type ValidationResult as TSValidationResult,
+} from './typescript/index.js';
 import type { ValidationIssue } from './biome/adapters/BiomeAdapter.js';
 
 /**
@@ -144,23 +147,15 @@ export class ValidatorManager {
     // Create validation promises for all enabled validators
     const validationPromises = this.validators.map(async (validatorInstance) => {
       const validatorStartTime = performance.now();
-      
+
       try {
         const result = await this.executeValidator(validatorInstance, file);
         const duration = performance.now() - validatorStartTime;
-        
-        return this.normalizeValidationResult(
-          validatorInstance.name,
-          result,
-          duration
-        );
+
+        return this.normalizeValidationResult(validatorInstance.name, result, duration);
       } catch (error) {
         const duration = performance.now() - validatorStartTime;
-        return this.createErrorResult(
-          validatorInstance.name,
-          error,
-          duration
-        );
+        return this.createErrorResult(validatorInstance.name, error, duration);
       }
     });
 
@@ -218,11 +213,11 @@ export class ValidatorManager {
     result: BiomeValidationResult | TSValidationResult,
     duration: number
   ): ValidationResult {
-    const hasErrors = result.issues.some(issue => issue.severity === 'error');
-    const hasWarnings = result.issues.some(issue => issue.severity === 'warning');
-    
+    const hasErrors = result.issues.some((issue) => issue.severity === 'error');
+    const hasWarnings = result.issues.some((issue) => issue.severity === 'warning');
+
     let status: 'success' | 'warning' | 'error';
-    
+
     // Handle different result structures
     if ('success' in result) {
       // BiomeValidationResult structure
@@ -245,7 +240,7 @@ export class ValidatorManager {
       status,
       issues: result.issues,
       duration,
-      error: ('error' in result) ? result.error : undefined,
+      error: 'error' in result ? result.error : undefined,
     };
   }
 
@@ -258,7 +253,7 @@ export class ValidatorManager {
     duration: number
   ): ValidationResult {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     return {
       validator: validatorName,
       status: 'error',
@@ -273,7 +268,7 @@ export class ValidatorManager {
    */
   private createEmptyResponse(startTime: number): ValidationResponse {
     const duration = performance.now() - startTime;
-    
+
     return {
       success: true,
       results: [],
@@ -297,15 +292,12 @@ export class ValidatorManager {
   /**
    * Aggregate results from multiple validators
    */
-  private aggregateResults(
-    results: ValidationResult[],
-    totalDuration: number
-  ): ValidationResponse {
+  private aggregateResults(results: ValidationResult[], totalDuration: number): ValidationResponse {
     // Calculate summary statistics
     const summary = {
       totalValidators: results.length,
-      successfulValidators: results.filter(r => r.status === 'success').length,
-      failedValidators: results.filter(r => r.status === 'error').length,
+      successfulValidators: results.filter((r) => r.status === 'success').length,
+      failedValidators: results.filter((r) => r.status === 'error').length,
       totalIssues: results.reduce((sum, r) => sum + r.issues.length, 0),
       errorCount: 0,
       warningCount: 0,
@@ -361,7 +353,7 @@ export class ValidatorManager {
       .update(content)
       .update(JSON.stringify(this.config))
       .digest('hex');
-    
+
     return hash;
   }
 
@@ -397,7 +389,7 @@ export class ValidatorManager {
       // Remove oldest entries
       const entries = Array.from(this.cache.entries());
       entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-      
+
       // Remove oldest 100 entries
       for (let i = 0; i < 100 && i < entries.length; i++) {
         const entry = entries[i];
@@ -436,7 +428,7 @@ export class ValidatorManager {
    * Get enabled validators info
    */
   getEnabledValidators(): Array<{ name: string; enabled: boolean }> {
-    return this.validators.map(v => ({
+    return this.validators.map((v) => ({
       name: v.name,
       enabled: v.enabled,
     }));

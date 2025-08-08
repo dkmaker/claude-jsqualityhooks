@@ -59,7 +59,7 @@ export function findTSConfigFile(options: TSConfigOptions = {}): string | null {
     if (existsSync(configFile)) {
       return configFile;
     }
-    
+
     currentDir = dirname(currentDir);
   }
 
@@ -72,14 +72,14 @@ export function findTSConfigFile(options: TSConfigOptions = {}): string | null {
 export async function loadTSConfig(configPath: string): Promise<TSConfig> {
   try {
     const content = await readFile(configPath, 'utf-8');
-    
+
     // Remove JSON comments (basic implementation for // and /* */)
     const cleanContent = content
       .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
       .replace(/\/\/.*$/gm, ''); // Remove // comments
-    
+
     const config = JSON.parse(cleanContent) as TSConfig;
-    
+
     // Handle extends property (basic implementation)
     if (config.extends) {
       const baseConfigPath = resolve(dirname(configPath), config.extends);
@@ -96,7 +96,7 @@ export async function loadTSConfig(configPath: string): Promise<TSConfig> {
         };
       }
     }
-    
+
     return config;
   } catch (error) {
     throw new Error(`Failed to load TypeScript config from ${configPath}: ${error}`);
@@ -106,13 +106,15 @@ export async function loadTSConfig(configPath: string): Promise<TSConfig> {
 /**
  * Load TypeScript configuration with discovery
  */
-export async function loadTSConfigWithDiscovery(options: TSConfigOptions = {}): Promise<LoadedTSConfig | null> {
+export async function loadTSConfigWithDiscovery(
+  options: TSConfigOptions = {}
+): Promise<LoadedTSConfig | null> {
   const configPath = findTSConfigFile(options);
-  
+
   if (!configPath) {
     return null;
   }
-  
+
   try {
     const config = await loadTSConfig(configPath);
     return { config, configPath };

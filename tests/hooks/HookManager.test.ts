@@ -35,11 +35,13 @@ class TestHook implements Hook {
 
   constructor(name: string, mockExecute?: vi.MockedFunction<any>) {
     this.name = name;
-    this.mockExecute = mockExecute || vi.fn().mockResolvedValue({
-      success: true,
-      modified: false,
-      duration: 50,
-    });
+    this.mockExecute =
+      mockExecute ||
+      vi.fn().mockResolvedValue({
+        success: true,
+        modified: false,
+        duration: 50,
+      });
   }
 
   async execute(file: FileInfo): Promise<HookResult> {
@@ -93,7 +95,9 @@ describe('HookManager', () => {
       expect(manager.isInitialized()).toBe(true);
       expect(mockConsoleInfo).toHaveBeenCalledWith('[HookManager] Initializing hook system');
       expect(mockConsoleInfo).toHaveBeenCalledWith('[HookManager] PostWrite hook initialized');
-      expect(mockConsoleInfo).toHaveBeenCalledWith('[HookManager] Hook system initialized with 1 hooks');
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        '[HookManager] Hook system initialized with 1 hooks'
+      );
       expect(manager.getRegisteredHooks()).toEqual(['postWrite']);
     });
 
@@ -105,7 +109,9 @@ describe('HookManager', () => {
 
       expect(disabledManager.isInitialized()).toBe(true);
       expect(disabledManager.getRegisteredHooks()).toEqual([]);
-      expect(mockConsoleInfo).toHaveBeenCalledWith('[HookManager] Hook system initialized with 0 hooks');
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        '[HookManager] Hook system initialized with 0 hooks'
+      );
     });
 
     it('should not initialize twice', async () => {
@@ -143,7 +149,9 @@ describe('HookManager', () => {
       await manager.initialize();
 
       expect(manager.isInitialized()).toBe(true);
-      expect(mockConsoleInfo).toHaveBeenCalledWith('[HookManager] Hook system initialized with 0 hooks');
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        '[HookManager] Hook system initialized with 0 hooks'
+      );
     });
   });
 
@@ -269,19 +277,25 @@ describe('HookManager', () => {
     it('should execute all registered hooks sequentially', async () => {
       // Use disabled manager to avoid auto-initialization of postWrite hook
       const testManager = new HookManager({ ...config, enabled: false });
-      
-      const hook1 = new TestHook('hook1', vi.fn().mockResolvedValue({
-        success: true,
-        modified: true,
-        duration: 50,
-        metadata: { hook: 'first' },
-      }));
-      const hook2 = new TestHook('hook2', vi.fn().mockResolvedValue({
-        success: true,
-        modified: false,
-        duration: 75,
-        metadata: { hook: 'second' },
-      }));
+
+      const hook1 = new TestHook(
+        'hook1',
+        vi.fn().mockResolvedValue({
+          success: true,
+          modified: true,
+          duration: 50,
+          metadata: { hook: 'first' },
+        })
+      );
+      const hook2 = new TestHook(
+        'hook2',
+        vi.fn().mockResolvedValue({
+          success: true,
+          modified: false,
+          duration: 75,
+          metadata: { hook: 'second' },
+        })
+      );
 
       testManager.registerHook(hook1);
       testManager.registerHook(hook2);
@@ -313,13 +327,19 @@ describe('HookManager', () => {
     it('should continue on hook failure by default', async () => {
       // Use disabled manager to avoid auto-initialization
       const testManager = new HookManager({ ...config, enabled: false });
-      
-      const failingHook = new TestHook('failing', vi.fn().mockRejectedValue(new Error('Hook failed')));
-      const successHook = new TestHook('success', vi.fn().mockResolvedValue({
-        success: true,
-        modified: false,
-        duration: 25,
-      }));
+
+      const failingHook = new TestHook(
+        'failing',
+        vi.fn().mockRejectedValue(new Error('Hook failed'))
+      );
+      const successHook = new TestHook(
+        'success',
+        vi.fn().mockResolvedValue({
+          success: true,
+          modified: false,
+          duration: 25,
+        })
+      );
 
       testManager.registerHook(failingHook);
       testManager.registerHook(successHook);
@@ -333,12 +353,18 @@ describe('HookManager', () => {
     });
 
     it('should stop on failure when continueOnFailure is false', async () => {
-      const failingHook = new TestHook('failing', vi.fn().mockRejectedValue(new Error('Hook failed')));
-      const successHook = new TestHook('success', vi.fn().mockResolvedValue({
-        success: true,
-        modified: false,
-        duration: 25,
-      }));
+      const failingHook = new TestHook(
+        'failing',
+        vi.fn().mockRejectedValue(new Error('Hook failed'))
+      );
+      const successHook = new TestHook(
+        'success',
+        vi.fn().mockResolvedValue({
+          success: true,
+          modified: false,
+          duration: 25,
+        })
+      );
 
       manager.registerHook(failingHook);
       manager.registerHook(successHook);
@@ -353,10 +379,13 @@ describe('HookManager', () => {
     it('should handle hook execution exceptions', async () => {
       // Use disabled manager to avoid auto-initialization
       const testManager = new HookManager({ ...config, enabled: false });
-      
-      const hook = new TestHook('throwing', vi.fn().mockImplementation(() => {
-        throw new Error('Synchronous error');
-      }));
+
+      const hook = new TestHook(
+        'throwing',
+        vi.fn().mockImplementation(() => {
+          throw new Error('Synchronous error');
+        })
+      );
 
       testManager.registerHook(hook);
 
@@ -407,9 +436,12 @@ describe('HookManager', () => {
 
   describe('error handling', () => {
     it('should never throw from public methods', async () => {
-      const throwingHook = new TestHook('throwing', vi.fn().mockImplementation(() => {
-        throw new Error('Critical error');
-      }));
+      const throwingHook = new TestHook(
+        'throwing',
+        vi.fn().mockImplementation(() => {
+          throw new Error('Critical error');
+        })
+      );
 
       manager.registerHook(throwingHook);
 
@@ -426,14 +458,17 @@ describe('HookManager', () => {
     it('should maintain system stability during cascading failures', async () => {
       // Use disabled manager to avoid auto-initialization
       const testManager = new HookManager({ ...config, enabled: false });
-      
+
       const error1 = new TestHook('error1', vi.fn().mockRejectedValue(new Error('Error 1')));
       const error2 = new TestHook('error2', vi.fn().mockRejectedValue(new Error('Error 2')));
-      const success = new TestHook('success', vi.fn().mockResolvedValue({
-        success: true,
-        modified: false,
-        duration: 10,
-      }));
+      const success = new TestHook(
+        'success',
+        vi.fn().mockResolvedValue({
+          success: true,
+          modified: false,
+          duration: 10,
+        })
+      );
 
       testManager.registerHook(error1);
       testManager.registerHook(error2);

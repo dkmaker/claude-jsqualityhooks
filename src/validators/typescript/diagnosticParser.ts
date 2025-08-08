@@ -20,7 +20,7 @@ function mapDiagnosticSeverity(category: ts.DiagnosticCategory): ValidationIssue
   switch (category) {
     case 0: // ts.DiagnosticCategory.Warning
       return 'warning';
-    case 1: // ts.DiagnosticCategory.Error  
+    case 1: // ts.DiagnosticCategory.Error
       return 'error';
     case 2: // ts.DiagnosticCategory.Suggestion
       return 'info';
@@ -40,7 +40,7 @@ function getPositionFromDiagnostic(diagnostic: ts.Diagnostic): { line: number; c
   }
 
   const lineAndChar = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
-  
+
   // Convert to 1-based indexing to match other validators
   return {
     line: lineAndChar.line + 1,
@@ -60,7 +60,7 @@ function formatDiagnosticMessage(messageText: string | ts.DiagnosticMessageChain
   let message = messageText.messageText;
   if (messageText.next) {
     const chainedMessages = messageText.next
-      .map(chain => formatDiagnosticMessage(chain))
+      .map((chain) => formatDiagnosticMessage(chain))
       .join(' ');
     message += ` ${chainedMessages}`;
   }
@@ -114,7 +114,7 @@ export function parseDiagnostics(
   options: DiagnosticParserOptions = {}
 ): ValidationIssue[] {
   return diagnostics
-    .map(diagnostic => parseDiagnostic(diagnostic, options))
+    .map((diagnostic) => parseDiagnostic(diagnostic, options))
     .sort((a, b) => {
       // Sort by file first, then by line, then by column
       if (a.file !== b.file) {
@@ -134,16 +134,18 @@ export function filterDiagnosticsForFile(
   diagnostics: readonly ts.Diagnostic[],
   targetFile: string
 ): ts.Diagnostic[] {
-  return diagnostics.filter(diagnostic => {
+  return diagnostics.filter((diagnostic) => {
     if (!diagnostic.file) {
       return false;
     }
-    
+
     const diagnosticFile = diagnostic.file.fileName;
-    
+
     // Match exact path or normalized path
-    return diagnosticFile === targetFile ||
-           diagnosticFile.replace(/\\/g, '/') === targetFile.replace(/\\/g, '/');
+    return (
+      diagnosticFile === targetFile ||
+      diagnosticFile.replace(/\\/g, '/') === targetFile.replace(/\\/g, '/')
+    );
   });
 }
 
@@ -159,6 +161,6 @@ export function isConfigDiagnostic(diagnostic: ts.Diagnostic): boolean {
     5025, // Unknown compiler option
     6064, // Cannot find tsconfig.json file
   ];
-  
+
   return configErrorCodes.includes(diagnostic.code);
 }

@@ -59,20 +59,20 @@ describe('ValidatorManager', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    
+
     // Reset mock implementations
     mockBiomeValidate.mockResolvedValue({
       success: true,
       issues: [],
       fixed: 0,
     });
-    
+
     mockTypeScriptValidate.mockResolvedValue({
       validator: 'typescript',
       status: 'success',
       issues: [],
     });
-    
+
     // Create mock config with both validators enabled
     mockConfig = {
       enabled: true,
@@ -111,7 +111,7 @@ describe('ValidatorManager', () => {
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(2);
-      expect(result.results.map(r => r.validator).sort()).toEqual(['biome', 'typescript']);
+      expect(result.results.map((r) => r.validator).sort()).toEqual(['biome', 'typescript']);
       expect(result.summary.totalValidators).toBe(2);
       expect(result.summary.successfulValidators).toBe(2);
       expect(result.cached).toBe(false);
@@ -125,7 +125,7 @@ describe('ValidatorManager', () => {
           typescript: { enabled: false },
         },
       };
-      
+
       const manager = new ValidatorManager(disabledConfig);
       const result = await manager.validateFile(mockFile);
 
@@ -142,7 +142,7 @@ describe('ValidatorManager', () => {
       const result = await manager.validateFile(mockFile);
 
       expect(result.results).toHaveLength(2);
-      expect(result.results.some(r => r.status === 'error')).toBe(true);
+      expect(result.results.some((r) => r.status === 'error')).toBe(true);
       expect(result.success).toBe(false);
     });
 
@@ -170,9 +170,7 @@ describe('ValidatorManager', () => {
       mockTypeScriptValidate.mockResolvedValue({
         validator: 'typescript',
         status: 'warning',
-        issues: [
-          { severity: 'warning', message: 'Warning 2', line: 3 },
-        ],
+        issues: [{ severity: 'warning', message: 'Warning 2', line: 3 }],
       });
 
       const manager = new ValidatorManager(mockConfig);
@@ -212,7 +210,7 @@ describe('ValidatorManager', () => {
     it('should report enabled validators', async () => {
       // Initialize by running validation first
       await validatorManager.validateFile(mockFile);
-      
+
       const enabled = validatorManager.getEnabledValidators();
       expect(enabled).toEqual([
         { name: 'biome', enabled: true },
@@ -231,7 +229,7 @@ describe('ValidatorManager', () => {
 
       const manager = new ValidatorManager(partialConfig);
       await manager.validateFile(mockFile);
-      
+
       const enabled = manager.getEnabledValidators();
       expect(enabled).toHaveLength(1);
       expect(enabled[0]).toEqual({ name: 'biome', enabled: true });

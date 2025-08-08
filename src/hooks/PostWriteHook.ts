@@ -35,7 +35,7 @@ export class PostWriteHook extends BaseHook {
 
     // Initialize pattern matcher with config patterns
     this.patternMatcher = new PatternMatcher(config.include, config.exclude);
-    
+
     // Initialize validator manager
     this.validatorManager = new ValidatorManager(config);
   }
@@ -158,29 +158,29 @@ export class PostWriteHook extends BaseHook {
   }> {
     try {
       this.info(`Running validators for: ${file.path}`);
-      
+
       const validationResponse = await this.validatorManager.validateFile(file);
-      
+
       // Log validation results
       if (validationResponse.cached) {
         this.info(`Used cached validation results for: ${file.path}`);
       }
-      
+
       if (validationResponse.summary.totalIssues > 0) {
         this.warn(
           `Found ${validationResponse.summary.totalIssues} issues in ${file.path} ` +
-          `(${validationResponse.summary.errorCount} errors, ${validationResponse.summary.warningCount} warnings)`
+            `(${validationResponse.summary.errorCount} errors, ${validationResponse.summary.warningCount} warnings)`
         );
       }
-      
+
       // Log performance if validation took longer than expected
       if (validationResponse.performance.totalDuration > 1000) {
         this.warn(
           `Validation took ${validationResponse.performance.totalDuration.toFixed(1)}ms for ${file.path} ` +
-          `(efficiency: ${(validationResponse.performance.parallelEfficiency * 100).toFixed(1)}%)`
+            `(efficiency: ${(validationResponse.performance.parallelEfficiency * 100).toFixed(1)}%)`
         );
       }
-      
+
       return {
         validation: validationResponse,
         stats: {
@@ -189,8 +189,11 @@ export class PostWriteHook extends BaseHook {
         },
       };
     } catch (error) {
-      this.warn(`Validator execution failed for ${file.path}`, error instanceof Error ? error : undefined);
-      
+      this.warn(
+        `Validator execution failed for ${file.path}`,
+        error instanceof Error ? error : undefined
+      );
+
       // Return safe fallback result
       return {
         stats: {
